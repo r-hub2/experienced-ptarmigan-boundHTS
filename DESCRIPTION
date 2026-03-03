@@ -27,4 +27,4 @@ Config/testthat/edition: 3
 Imports: ExtDist, future, future.apply, stats, pracma
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2026-03-03 02:00:40 UTC; hcom0005
+Packaged: 2026-03-03 02:24:00 UTC; hcom0005
