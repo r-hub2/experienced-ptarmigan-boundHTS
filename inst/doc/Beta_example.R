@@ -82,7 +82,7 @@ B <- 1 - A
 ## ----top-level----------------------------------------------------------------
 
 # Final data set
-sim_data <- tibble(
+sim_data <- tibble::tibble(
   Time = 1:c(n_obs-burn_in),
   A  = A,
   B  = B,
@@ -184,11 +184,11 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 # cat("Initial burn-in & sampling for TOP model...\n")
 # 
 # # burn-in
-# update(mod_top, init_burnin_iter)
+# rjags::update(mod_top, init_burnin_iter)
 # 
 # # sample
 # params_top <- c("phi", "mu", "beta0", "beta_coef", "y_pred")
-# samps_top_init <- coda.samples(mod_top, variable.names = params_top,
+# samps_top_init <- rjags::coda.samples(mod_top, variable.names = params_top,
 #                                n.iter = init_sample_iter, thin = init_thin)
 # 
 # # get mean of y_pred and phi and mu
@@ -203,7 +203,7 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 # cat("Initial burn-in & sampling for BOTTOM model...\n")
 # params_bottom <- c("phi", "mu", "beta0", "beta_coef", "y_pred")
 # update(mod_bottom, init_burnin_iter)
-# samps_bottom_init <- coda.samples(mod_bottom, variable.names = params_bottom,
+# samps_bottom_init <- rjags::coda.samples(mod_bottom, variable.names = params_bottom,
 #                                   n.iter = init_sample_iter, thin = init_thin)
 # 
 # y_pred_bottom_mat <- samples_to_matrix(samps_bottom_init, "y_pred")
@@ -223,15 +223,16 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 # }
 # 
 # # Append results for first_t
-# preds_mean_all <- bind_rows(preds_mean_all, as.data.frame(
-#   cbind(Time = first_t,
-#         A = y_pred_top_mean[ncol(y_pred_top_mat) ],      # last entry corresponds to N_pred
-#         pred_AA = y_pred_bottom_mean[ ncol(y_pred_bottom_mat) ],
-#         pred_AB = y_pred_bottom_mean[ ncol(y_pred_bottom_mat) - 1 ], # adjust if ordering differs
-#         phi_A = mean(phi_top_mean),
-#         phi_AA = phi_bottom_mean[1],
-#         phi_AB = phi_bottom_mean[2])
-# ))
+# preds_mean_all <- dplyr::bind_rows(preds_mean_all,
+#                                    as.data.frame(
+#                                      cbind(Time = first_t,
+#                                            A = y_pred_top_mean[ncol(y_pred_top_mat) ],      # last entry corresponds to N_pred
+#                                            pred_AA = y_pred_bottom_mean[ ncol(y_pred_bottom_mat) ],
+#                                            pred_AB = y_pred_bottom_mean[ ncol(y_pred_bottom_mat) - 1 ], # adjust if ordering differs
+#                                            phi_A = mean(phi_top_mean),
+#                                            phi_AA = phi_bottom_mean[1],
+#                                            phi_AB = phi_bottom_mean[2])
+#                                      ))
 # 
 # # save posterior draws (for first_t)
 # # For consistent column ordering create a data.frame with Time and draws
@@ -245,7 +246,7 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #   AA = y_pred_bottom_mat[, Npred_index_bottom - 1],  # adjust if necessary
 #   AB = y_pred_bottom_mat[, Npred_index_bottom]
 # )
-# preds_post_all <- bind_rows(preds_post_all, pred_post_init)
+# preds_post_all <- dplyr::bind_rows(preds_post_all, pred_post_init)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # remaining_t <- setdiff(n_testyears, first_t)
@@ -270,8 +271,8 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #   assign("y", as.matrix(yA), envir = jags_data_top_env)
 # 
 #   # short warm-up and sample
-#   update(mod_top, update_short)
-#   samps_top <- coda.samples(mod_top, variable.names = params_top,
+#   stats::update(mod_top, update_short)
+#   samps_top <- rjags::coda.samples(mod_top, variable.names = params_top,
 #                             n.iter = sample_short, thin = thin_short)
 # 
 #   # extract means and posterior predictive draws
@@ -291,8 +292,8 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #   assign("N_pred", N_pred_bottom, envir = jags_data_bottom_env)
 #   assign("y", as.matrix(yB), envir = jags_data_bottom_env)
 # 
-#   update(mod_bottom, update_short)
-#   samps_bottom <- coda.samples(mod_bottom, variable.names = params_bottom,
+#   stats::update(mod_bottom, update_short)
+#   samps_bottom <- rjags::coda.samples(mod_bottom, variable.names = params_bottom,
 #                                n.iter = sample_short, thin = thin_short)
 # 
 #   y_pred_bottom_mat <- samples_to_matrix(samps_bottom, "y_pred")
@@ -326,8 +327,8 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #     AB = y_pred_bottom_mat[, Npred_idx_bottom]
 #   )
 # 
-#   preds_mean_all <- bind_rows(preds_mean_all, as.data.frame(preds_mean))
-#   preds_post_all <- bind_rows(preds_post_all, pred_post)
+#   preds_mean_all <- dplyr::bind_rows(preds_mean_all, as.data.frame(preds_mean))
+#   preds_post_all <- dplyr::bind_rows(preds_post_all, pred_post)
 # }
 # 
 
@@ -344,112 +345,112 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 # mu_mean <- mu_estimates[[1]] # means
 # 
 # # ---- Top-level (A) ------------------------------------------------
-# mu_top <- tibble(
+# mu_top <- tibble::tibble(
 #   param = names(mu_mean[[1]]),
 #   estimate = mu_mean[[1]]
 # ) %>%
-#   separate_wider_delim(
+#   tidyr::separate_wider_delim(
 #     col = param,
 #     names = c("Time", "index_top"),
 #     delim = ","
 #   ) %>%
-#   mutate(
+#   dplyr::mutate(
 #     Time = gsub("mu\\[", "", Time),
 #     index_top = gsub("\\]", "", index_top),
 #     Node = ifelse(index_top == 1, "A", NA)
 #   ) %>%
-#   select(Time, Node, estimate) %>%
-#   pivot_wider(names_from = Node, values_from = estimate)
+#   dplyr::select(Time, Node, estimate) %>%
+#   tidyr::pivot_wider(names_from = Node, values_from = estimate)
 # 
 # # ---- Bottom-level (AA, AB) ----------------------------------------
 # mu_bottom <- tibble(
 #   param = names(mu_mean[[2]]),
 #   estimate = mu_mean[[2]]
 # ) %>%
-#   separate_wider_delim(
+#   tidyr::separate_wider_delim(
 #     col = param,
 #     names = c("Time", "index_bottom"),
 #     delim = ","
 #   ) %>%
-#   mutate(
+#   dplyr::mutate(
 #     Time = gsub("mu\\[", "", Time),
 #     index_bottom = gsub("\\]", "", index_bottom),
 #     Node = ifelse(index_bottom == 1, "AA", "AB")
 #   ) %>%
-#   select(Time, Node, estimate) %>%
-#   pivot_wider(names_from = Node, values_from = estimate)
+#   dplyr::select(Time, Node, estimate) %>%
+#   tidyr::pivot_wider(names_from = Node, values_from = estimate)
 # 
 # # Combined latent mean estimates
-# mu_mean_df <- left_join(mu_top, mu_bottom)
+# mu_mean_df <- dplyr::left_join(mu_top, mu_bottom)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # 
 # mu_post <- mu_estimates[[2]]
 # 
 # # ---- Top-level posterior samples ----------------------------------
-# mu_top_post <- as_tibble(mu_post[[1]]) %>%
-#   mutate(sample_id = row_number()) %>%
-#   pivot_longer(
+# mu_top_post <- dplyr::as_tibble(mu_post[[1]]) %>%
+#   dplyr::mutate(sample_id = row_number()) %>%
+#   dplyr::pivot_longer(
 #     cols = everything(),
 #     names_to = "param",
 #     values_to = "estimate"
 #   ) %>%
-#   separate_wider_delim(
+#   dplyr::separate_wider_delim(
 #     col = param,
 #     names = c("Time", "index_top"),
 #     delim = ","
 #   ) %>%
-#   mutate(
+#   dplyr::mutate(
 #     Time = as.numeric(gsub("mu\\[", "", Time)),
 #     index_top = gsub("\\]", "", index_top),
 #     Node = ifelse(index_top == 1, "A", NA)
 #   ) %>%
-#   select(Time, sample_id, Node, estimate) %>%
-#   pivot_wider(names_from = Node, values_from = estimate) %>%
-#   filter(Time < 200)
+#   dplyr::select(Time, sample_id, Node, estimate) %>%
+#   tidyr::pivot_wider(names_from = Node, values_from = estimate) %>%
+#   dplyr::filter(Time < 200)
 # 
 # # ---- Bottom-level posterior samples -------------------------------
-# mu_bottom_post <- as_tibble(mu_post[[2]]) %>%
-#   mutate(sample_id = row_number()) %>%
-#   pivot_longer(
+# mu_bottom_post <- dplyr::as_tibble(mu_post[[2]]) %>%
+#   dplyr::mutate(sample_id = row_number()) %>%
+#   dplyr::pivot_longer(
 #     cols = everything(),
 #     names_to = "param",
 #     values_to = "estimate"
 #   ) %>%
-#   separate_wider_delim(
+#   dplyr::separate_wider_delim(
 #     col = param,
 #     names = c("Time", "index_bottom"),
 #     delim = ","
 #   ) %>%
-#   mutate(
+#   dplyr::mutate(
 #     Time = as.numeric(gsub("mu\\[", "", Time)),
 #     index_bottom = gsub("\\]", "", index_bottom),
 #     Node = ifelse(index_bottom == 1, "AA", "AB")
 #   ) %>%
-#   select(Time, sample_id, Node, estimate) %>%
-#   pivot_wider(names_from = Node, values_from = estimate) %>%
-#   filter(Time < 200)
+#   dplyr::select(Time, sample_id, Node, estimate) %>%
+#   tidyr::pivot_wider(names_from = Node, values_from = estimate) %>%
+#   dplyr::filter(Time < 200)
 # 
 # # Combined posterior samples
-# mu_post_df <- left_join(mu_top_post, mu_bottom_post)
+# mu_post_df <- dplyr::left_join(mu_top_post, mu_bottom_post)
 # 
 
 ## ----eval=FALSE---------------------------------------------------------------
 # 
 # pred_ysim <- preds_mean_all %>%
-#   as_tibble() %>%
-#   rename(
+#   dplyr::as_tibble() %>%
+#   dplyr::rename(
 #     AA = pred_AA,
 #     AB = pred_AB
 #   ) %>%
-#   select(Time, A, AA, AB, phi_A, phi_AA, phi_AB)
+#   dplyr::select(Time, A, AA, AB, phi_A, phi_AA, phi_AB)
 # 
 
 ## ----eval=FALSE---------------------------------------------------------------
 # post_ysim <- preds_post_all %>%
-#   select(Time, A, AA, AB) %>%
-#   group_by(Time) %>%
-#   mutate(sample_id = row_number())
+#   dplyr::select(Time, A, AA, AB) %>%
+#   dplyr::group_by(Time) %>%
+#  dplyr:: mutate(sample_id = dplyr::row_number())
 # 
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -462,8 +463,8 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 # 
 # # Using the test set of years
 # test_years <- sim_data %>%
-#   select(Time) %>%
-#   filter(Time >= 200) %>% # validation test set
+#   dplyr::select(Time) %>%
+#   dplyr::filter(Time >= 200) %>% # validation test set
 #   unlist() %>%
 #   as.vector()
 # 
@@ -471,7 +472,7 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 # groups <- list(2, c(2, 2))  # Hierarchical structure
 # 
 # # Create results dataframe to store results in
-# rec_df <- tibble()
+# rec_df <- tibble::tibble()
 # 
 # # Set up tilting inputs
 # f_tilde_exp <- list()
@@ -491,8 +492,8 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #   t_i <- test_years[i]
 # 
 #   # Extract posterior samples
-#   P_top     <- post_ysim %>% filter(Time==t_i) %>% ungroup() %>% select(all_of(top_node))
-#   P_bottom  <- post_ysim %>% filter(Time==t_i)  %>% ungroup() %>% select(all_of(bottom_nodes))
+#   P_top     <- post_ysim %>% dplyr::filter(Time==t_i) %>% dplyr::ungroup() %>% dplyr::select(dplyr::all_of(top_node))
+#   P_bottom  <- post_ysim %>% dplyr::filter(Time==t_i)  %>% dplyr::ungroup() %>% dplyr::select(dplyr::all_of(bottom_nodes))
 # 
 #   # Extract mean phi for top + bottom
 #   phi_top    <- pred_ysim[i, "phi_A"]
@@ -523,15 +524,14 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #   for (b in 1:2) {
 #     dens_i <- bottom_dens[[b]]
 # 
-#     tmp <- tibble(
+#     tmp <- tibble::tibble(
 #       Node    = bottom_nodes[b],
 #       Time    = t_i,
 #       Z       = z_values,
-#       Density = approx(dens_i$x, dens_i$y,
-#                        xout = z_values, rule = 2)$y
+#       Density = stats::approx(dens_i$x, dens_i$y,xout = z_values, rule = 2)$y
 #     )
 # 
-#     rec_df <- bind_rows(rec_df, tmp)
+#     rec_df <- dplyr::bind_rows(rec_df, tmp)
 #   }
 # 
 #   # Convolution to get A distribution
@@ -543,14 +543,14 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #     weights_bottom
 #   )
 # 
-#   tmp_top <- tibble(
+#   tmp_top <- tibble::tibble(
 #     Node    = top_node,
 #     Time    = t_i,
 #     Z       = z_values,
 #     Density = Density_top
 #   )
 # 
-#   rec_df <- bind_rows(rec_df, tmp_top)
+#   rec_df <- dplyr::bind_rows(rec_df, tmp_top)
 # }
 # 
 # 
@@ -559,9 +559,9 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 # for (t in seq_along(test_years)) {
 #   # Extract convolution densities for these nodes
 #   rec_dens_df <- rec_df %>%
-#     filter(Time == test_years[t]) %>%
-#     pivot_wider(names_from = Node, values_from = Density) %>%
-#     select(Z, all_of(tilted_nodes))
+#     dplyr::filter(Time == test_years[t]) %>%
+#     tidyr::pivot_wider(names_from = Node, values_from = Density) %>%
+#     dplyr::select(Z, dplyr::all_of(tilted_nodes))
 # 
 #   # Predicted means
 #   mu_theory <- as.numeric(pred_ysim[t, tilted_nodes])
@@ -605,7 +605,7 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #     } else {
 #       lower <- nu_grid[idx[1]]
 #       upper <- nu_grid[idx[1] + 1]
-#       nu_star <- uniroot(moment_condition_tilting,
+#       nu_star <- stats::uniroot(moment_condition_tilting,
 #                          lower = lower,
 #                          upper = upper,
 #                          f_y = f_y,
@@ -618,7 +618,7 @@ samples_to_matrix <- function(samples_mcmc_list, varname) {
 #     # Tilted density + samples
 #     f_tilt_i <- tilted_density_cont(nu_star, f_y, y_vals)
 #     f_tilt_i <- f_tilt_i / pracma::trapz(y_vals, f_tilt_i)
-#     f_tilted[, i] <- approx(y_vals, f_tilt_i, xout = z_values, rule = 2)$y
+#     f_tilted[, i] <- stats::approx(y_vals, f_tilt_i, xout = z_values, rule = 2)$y
 # 
 #     tilted_samps[, i] <- sample(y_vals, 5000, replace = TRUE, prob = f_tilt_i)
 # 

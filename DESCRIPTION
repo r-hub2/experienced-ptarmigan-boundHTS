@@ -14,7 +14,7 @@ Authors@R: c(person(given = "Hannah",
                       family = "Maneesoonthorn",
                       role = "aut"))
 Description: Methods for probabilistic and coherent forecasting of hierarchical bounded time series.
-Version: 1.0.0
+Version: 1.0.1
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -22,9 +22,9 @@ RoxygenNote: 7.3.3
 Depends: R (>= 3.5)
 LazyData: true
 Suggests: knitr, rmarkdown, testthat (>= 3.0.0), tidyr, tidyverse,
-        ggplot2, dplyr, coda, rjags, MASS
+        ggplot2, dplyr, coda, rjags, brms, tibble, MASS
 Config/testthat/edition: 3
 Imports: ExtDist, future, future.apply, stats, pracma
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2026-03-03 01:07:16 UTC; hcom0005
+Packaged: 2026-03-03 02:00:40 UTC; hcom0005

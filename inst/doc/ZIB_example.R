@@ -4,7 +4,10 @@ library(tidyverse)
 library(tidyr)
 library(dplyr)
 library(ggplot2)
-library(brms)
+if (!requireNamespace("brms", quietly = TRUE)) {
+  stop("Package 'brms' needed for this vignette. Please install it.",
+       call. = FALSE)
+}
 library(coda)
 library(splines)
 
@@ -113,7 +116,7 @@ B <- 1 - A
 ## ----top-level----------------------------------------------------------------
 
 # Final data set
-sim_data <- tibble(
+sim_data <- dplyr::tibble(
   Time = 1:c(n_obs-burn_in),
   A  = A,
   B  = B,
@@ -133,49 +136,52 @@ sim_data <- tibble(
 #                 zi ~ 1)
 # 
 # prior <- c(
-#   prior(normal(0, 1), class = "Intercept"),
-#   prior(normal(log(30), 0.5), class = "Intercept", dpar = "phi"),
-#   prior(normal(-4, 1), class = "Intercept", dpar = "zi"),
-#   prior(exponential(2), class = "sds")
+#   brms::prior(normal(0, 1), class = "Intercept"),
+#   brms::prior(normal(log(30), 0.5), class = "Intercept", dpar = "phi"),
+#   brms::prior(normal(-4, 1), class = "Intercept", dpar = "zi"),
+#   brms::prior(exponential(2), class = "sds")
 # )
 # 
 # 
 # fits <- list(
-#   A  = brm(update(form_base, value ~ .), family = zero_inflated_beta(),
-#            data = training_data %>% rename(value = A),
-#            prior = prior,
-#            chains = 4, cores = 4, iter = 4000, warmup = 1000,
-#            backend = "cmdstanr",
-#            control = list(adapt_delta = 0.995, max_treedepth = 12)),
+#   A  = brms::brm(brms::update(form_base, value ~ .),
+#                  family = zero_inflated_beta(),
+#                  data = training_data %>% rename(value = A),
+#                  prior = prior,
+#                  chains = 4, cores = 4, iter = 4000, warmup = 1000,
+#                  backend = "cmdstanr",
+#                  control = list(adapt_delta = 0.995, max_treedepth = 12)),
 # 
-#   AA = brm(update(form_base, value ~ .), family = zero_inflated_beta(),
-#            data = training_data %>% rename(value = AA),
-#            prior = prior,
-#            chains = 4, cores = 4, iter = 4000, warmup = 1000,
-#            backend = "cmdstanr",
-#            control = list(adapt_delta = 0.995, max_treedepth = 12)),
+#   AA = brms::brm(brms::update(form_base, value ~ .),
+#                  family = zero_inflated_beta(),
+#                  data = training_data %>% rename(value = AA),
+#                  prior = prior,
+#                  chains = 4, cores = 4, iter = 4000, warmup = 1000,
+#                  backend = "cmdstanr",
+#                  control = list(adapt_delta = 0.995, max_treedepth = 12)),
 # 
-#   AB = brm(update(form_base, value ~ .), family = zero_inflated_beta(),
-#            data = training_data %>% rename(value = AB),
-#            prior = prior,
-#            chains = 4, cores = 4, iter = 4000, warmup = 1000,
-#            backend = "cmdstanr",
-#            control = list(adapt_delta = 0.995, max_treedepth = 12))
+#   AB = brms::brm(brms::update(form_base, value ~ .),
+#                  family = zero_inflated_beta(),
+#                  data = training_data %>% rename(value = AB),
+#                  prior = prior,
+#                  chains = 4, cores = 4, iter = 4000, warmup = 1000,
+#                  backend = "cmdstanr",
+#                  control = list(adapt_delta = 0.995, max_treedepth = 12)),
 # )
 # 
 
 ## ----eval=FALSE---------------------------------------------------------------
-# summary(fits$A)
+# cmdstanr::summary(fits$A)
 # plot(fits$A)
-# pp_check(fits$A)
+# brms::pp_check(fits$A)
 # 
-# summary(fits$AA)
+# cmdstanr::summary(fits$AA)
 # plot(fits$AA)
-# pp_check(fits$AA)
+# brms::pp_check(fits$AA)
 # 
-# summary(fits$AB)
+# cmdstanr::summary(fits$AB)
 # plot(fits$AB)
-# pp_check(fits$AB)
+# brms::pp_check(fits$AB)
 # 
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -191,7 +197,7 @@ sim_data <- tibble(
 #   t <- test_times[i]
 #   message("Forecasting time ", t)
 # 
-#   data_up_to_t <- sim_data %>% filter(Time <= t)
+#   data_up_to_t <- sim_data %>% dplyr::filter(Time <= t)
 # 
 #   years <- sort(unique(data_up_to_t$Time))
 #   n_years <- length(years)
@@ -207,16 +213,16 @@ sim_data <- tibble(
 #     fit  <- fits[[node]]
 # 
 #     node_data <- data_up_to_t %>%
-#       select(Time, value = all_of(node))
+#       dplyr::select(Time, value = all_of(node))
 # 
 #     pred_array[, s, ] <-
-#       posterior_predict(fit, newdata = node_data)[1:n_draws, ]
+#       brms::posterior_predict(fit, newdata = node_data)[1:n_draws, ]
 # 
 #     phi_array[, s, ] <-
-#       posterior_epred(fit, dpar = "phi", newdata = node_data)[1:n_draws, ]
+#       brms::posterior_epred(fit, dpar = "phi", newdata = node_data)[1:n_draws, ]
 # 
 #     zi_array[, s, ] <-
-#       posterior_epred(fit, dpar = "zi", newdata = node_data)[1:n_draws, ]
+#       brms::posterior_epred(fit, dpar = "zi", newdata = node_data)[1:n_draws, ]
 #   }
 # 
 #   forecast_results[[i]] <- list(
@@ -233,8 +239,8 @@ sim_data <- tibble(
 # mean_draws_1 <- apply(forecast_results[[1]]$post_draws, c(2,3), mean)
 # mean_draws_2 <- apply(forecast_results[[2]]$post_draws, c(2,3), mean)
 # 
-# mu_mean_df <- as_tibble(rbind(t(mean_draws_1), t(mean_draws_2)[250,])) %>%
-#   mutate(Time = 1:250)
+# mu_mean_df <- dplyr::as_tibble(rbind(t(mean_draws_1), t(mean_draws_2)[250,])) %>%
+#   dplyr::mutate(Time = 1:250)
 # 
 
 ## ----eval=FALSE---------------------------------------------------------------
@@ -280,7 +286,7 @@ sim_data <- tibble(
 # 
 #   t_i <- test_times[i]
 # 
-#   bottom_data <- sim_data %>% filter(Time <= t_i) %>% select('AA', 'AB') %>% as.matrix()
+#   bottom_data <- sim_data %>% dplyr::filter(Time <= t_i) %>% dplyr::select('AA', 'AB') %>% as.matrix()
 # 
 #   # Sample bottom
 #   weighted_samps <- rZIB_4p(n_mc = 100,
@@ -296,15 +302,15 @@ sim_data <- tibble(
 #   for (b in 1:2) {
 #     dens_i <- bottom_dens[[b]]
 # 
-#     tmp <- tibble(
+#     tmp <- dplyr::tibble(
 #       Node    = bottom_nodes[b],
 #       Time    = t_i,
 #       Z       = z_values,
-#       Density = approx(dens_i$x, dens_i$y,
+#       Density = stats::approx(dens_i$x, dens_i$y,
 #                        xout = z_values, rule = 2)$y
 #     )
 # 
-#     rec_df <- bind_rows(rec_df, tmp) # add density of bottom series to results dataframe
+#     rec_df <- dplyr::bind_rows(rec_df, tmp) # add density of bottom series to results dataframe
 #   }
 # 
 # 
@@ -318,14 +324,14 @@ sim_data <- tibble(
 #     n_mc = 100
 #   )
 # 
-#   tmp_top <- tibble(
+#   tmp_top <- dplyr::tibble(
 #     Node    = top_node,
 #     Time    = t_i,
 #     Z       = z_values,
 #     Density = Density_top
 #   )
 # 
-#   rec_df <- bind_rows(rec_df, tmp_top) # add density of convoluted top series to results dataframe
+#   rec_df <- dplyr::bind_rows(rec_df, tmp_top) # add density of convoluted top series to results dataframe
 # }
 # 
 
@@ -333,9 +339,9 @@ sim_data <- tibble(
 # for (t in seq_along(test_times)) {
 #   # Extract convolution densities for these nodes
 #   rec_dens_df <- rec_df %>%
-#     filter(Time == test_times[t]) %>%
-#     pivot_wider(names_from = Node, values_from = Density) %>%
-#     select(Z, all_of(tilted_nodes))
+#     dplyr::filter(Time == test_times[t]) %>%
+#     dplyr::pivot_wider(names_from = Node, values_from = Density) %>%
+#     dplyr::select(Z, all_of(tilted_nodes))
 # 
 #   # Predicted means
 #   mu_theory <- as.numeric(mu_mean_df[test_times[t], tilted_nodes])
@@ -379,7 +385,7 @@ sim_data <- tibble(
 #     } else {
 #       lower <- nu_grid[idx[1]]
 #       upper <- nu_grid[idx[1] + 1]
-#       nu_star <- uniroot(moment_condition_tilting,
+#       nu_star <- stats::uniroot(moment_condition_tilting,
 #                          lower = lower,
 #                          upper = upper,
 #                          f_y = f_y,

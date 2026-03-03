@@ -510,7 +510,7 @@ mean.</p>
 <p>The resulting data set contains all hierarchical levels and will be
 used as input for the Bayesian models in Step 2.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Final data set</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
 <span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">Time =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">c</span>(n_obs<span class="sc">-</span>burn_in),</span>
 <span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">A  =</span> A,</span>
 <span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="at">B  =</span> B,</span>
@@ -631,11 +631,11 @@ number of iterations or shorten the rolling window.</p>
 <span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Initial burn-in &amp; sampling for TOP model...</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
 <span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co"># burn-in</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="fu">update</span>(mod_top, init_burnin_iter)</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>rjags<span class="sc">::</span><span class="fu">update</span>(mod_top, init_burnin_iter)</span>
 <span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a></span>
 <span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co"># sample</span></span>
 <span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>params_top <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;phi&quot;</span>, <span class="st">&quot;mu&quot;</span>, <span class="st">&quot;beta0&quot;</span>, <span class="st">&quot;beta_coef&quot;</span>, <span class="st">&quot;y_pred&quot;</span>)</span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>samps_top_init <span class="ot">&lt;-</span> <span class="fu">coda.samples</span>(mod_top, <span class="at">variable.names =</span> params_top,</span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>samps_top_init <span class="ot">&lt;-</span> rjags<span class="sc">::</span><span class="fu">coda.samples</span>(mod_top, <span class="at">variable.names =</span> params_top,</span>
 <span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>                               <span class="at">n.iter =</span> init_sample_iter, <span class="at">thin =</span> init_thin)</span>
 <span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a></span>
 <span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co"># get mean of y_pred and phi and mu</span></span>
@@ -650,7 +650,7 @@ number of iterations or shorten the rolling window.</p>
 <span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Initial burn-in &amp; sampling for BOTTOM model...</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a>params_bottom <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;phi&quot;</span>, <span class="st">&quot;mu&quot;</span>, <span class="st">&quot;beta0&quot;</span>, <span class="st">&quot;beta_coef&quot;</span>, <span class="st">&quot;y_pred&quot;</span>)</span>
 <span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="fu">update</span>(mod_bottom, init_burnin_iter)</span>
-<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a>samps_bottom_init <span class="ot">&lt;-</span> <span class="fu">coda.samples</span>(mod_bottom, <span class="at">variable.names =</span> params_bottom,</span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a>samps_bottom_init <span class="ot">&lt;-</span> rjags<span class="sc">::</span><span class="fu">coda.samples</span>(mod_bottom, <span class="at">variable.names =</span> params_bottom,</span>
 <span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a>                                  <span class="at">n.iter =</span> init_sample_iter, <span class="at">thin =</span> init_thin)</span>
 <span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a></span>
 <span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a>y_pred_bottom_mat <span class="ot">&lt;-</span> <span class="fu">samples_to_matrix</span>(samps_bottom_init, <span class="st">&quot;y_pred&quot;</span>)</span>
@@ -670,29 +670,30 @@ number of iterations or shorten the rolling window.</p>
 <span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a>}</span>
 <span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a></span>
 <span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a><span class="co"># Append results for first_t</span></span>
-<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a>preds_mean_all <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(preds_mean_all, <span class="fu">as.data.frame</span>(</span>
-<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a>  <span class="fu">cbind</span>(<span class="at">Time =</span> first_t,</span>
-<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a>        <span class="at">A =</span> y_pred_top_mean[<span class="fu">ncol</span>(y_pred_top_mat) ],      <span class="co"># last entry corresponds to N_pred</span></span>
-<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a>        <span class="at">pred_AA =</span> y_pred_bottom_mean[ <span class="fu">ncol</span>(y_pred_bottom_mat) ],</span>
-<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a>        <span class="at">pred_AB =</span> y_pred_bottom_mean[ <span class="fu">ncol</span>(y_pred_bottom_mat) <span class="sc">-</span> <span class="dv">1</span> ], <span class="co"># adjust if ordering differs</span></span>
-<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a>        <span class="at">phi_A =</span> <span class="fu">mean</span>(phi_top_mean),</span>
-<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a>        <span class="at">phi_AA =</span> phi_bottom_mean[<span class="dv">1</span>],</span>
-<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a>        <span class="at">phi_AB =</span> phi_bottom_mean[<span class="dv">2</span>])</span>
-<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a>))</span>
-<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a></span>
-<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a><span class="co"># save posterior draws (for first_t)</span></span>
-<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a><span class="co"># For consistent column ordering create a data.frame with Time and draws</span></span>
-<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a>n_draws_init <span class="ot">&lt;-</span> <span class="fu">nrow</span>(y_pred_top_mat)</span>
-<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a>Npred_index_top <span class="ot">&lt;-</span> <span class="fu">ncol</span>(y_pred_top_mat)  <span class="co"># last column is the N_pred</span></span>
-<span id="cb10-60"><a href="#cb10-60" tabindex="-1"></a>Npred_index_bottom <span class="ot">&lt;-</span> <span class="fu">ncol</span>(y_pred_bottom_mat)</span>
-<span id="cb10-61"><a href="#cb10-61" tabindex="-1"></a></span>
-<span id="cb10-62"><a href="#cb10-62" tabindex="-1"></a>pred_post_init <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb10-63"><a href="#cb10-63" tabindex="-1"></a>  <span class="at">Time =</span> <span class="fu">rep</span>(first_t, n_draws_init),</span>
-<span id="cb10-64"><a href="#cb10-64" tabindex="-1"></a>  <span class="at">A =</span> y_pred_top_mat[, Npred_index_top],</span>
-<span id="cb10-65"><a href="#cb10-65" tabindex="-1"></a>  <span class="at">AA =</span> y_pred_bottom_mat[, Npred_index_bottom <span class="sc">-</span> <span class="dv">1</span>],  <span class="co"># adjust if necessary</span></span>
-<span id="cb10-66"><a href="#cb10-66" tabindex="-1"></a>  <span class="at">AB =</span> y_pred_bottom_mat[, Npred_index_bottom]</span>
-<span id="cb10-67"><a href="#cb10-67" tabindex="-1"></a>)</span>
-<span id="cb10-68"><a href="#cb10-68" tabindex="-1"></a>preds_post_all <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(preds_post_all, pred_post_init)</span></code></pre></div>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a>preds_mean_all <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(preds_mean_all,</span>
+<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a>                                   <span class="fu">as.data.frame</span>(</span>
+<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a>                                     <span class="fu">cbind</span>(<span class="at">Time =</span> first_t,</span>
+<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a>                                           <span class="at">A =</span> y_pred_top_mean[<span class="fu">ncol</span>(y_pred_top_mat) ],      <span class="co"># last entry corresponds to N_pred</span></span>
+<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a>                                           <span class="at">pred_AA =</span> y_pred_bottom_mean[ <span class="fu">ncol</span>(y_pred_bottom_mat) ],</span>
+<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a>                                           <span class="at">pred_AB =</span> y_pred_bottom_mean[ <span class="fu">ncol</span>(y_pred_bottom_mat) <span class="sc">-</span> <span class="dv">1</span> ], <span class="co"># adjust if ordering differs</span></span>
+<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a>                                           <span class="at">phi_A =</span> <span class="fu">mean</span>(phi_top_mean),</span>
+<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a>                                           <span class="at">phi_AA =</span> phi_bottom_mean[<span class="dv">1</span>],</span>
+<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a>                                           <span class="at">phi_AB =</span> phi_bottom_mean[<span class="dv">2</span>])</span>
+<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a>                                     ))</span>
+<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a></span>
+<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a><span class="co"># save posterior draws (for first_t)</span></span>
+<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a><span class="co"># For consistent column ordering create a data.frame with Time and draws</span></span>
+<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a>n_draws_init <span class="ot">&lt;-</span> <span class="fu">nrow</span>(y_pred_top_mat)</span>
+<span id="cb10-60"><a href="#cb10-60" tabindex="-1"></a>Npred_index_top <span class="ot">&lt;-</span> <span class="fu">ncol</span>(y_pred_top_mat)  <span class="co"># last column is the N_pred</span></span>
+<span id="cb10-61"><a href="#cb10-61" tabindex="-1"></a>Npred_index_bottom <span class="ot">&lt;-</span> <span class="fu">ncol</span>(y_pred_bottom_mat)</span>
+<span id="cb10-62"><a href="#cb10-62" tabindex="-1"></a></span>
+<span id="cb10-63"><a href="#cb10-63" tabindex="-1"></a>pred_post_init <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb10-64"><a href="#cb10-64" tabindex="-1"></a>  <span class="at">Time =</span> <span class="fu">rep</span>(first_t, n_draws_init),</span>
+<span id="cb10-65"><a href="#cb10-65" tabindex="-1"></a>  <span class="at">A =</span> y_pred_top_mat[, Npred_index_top],</span>
+<span id="cb10-66"><a href="#cb10-66" tabindex="-1"></a>  <span class="at">AA =</span> y_pred_bottom_mat[, Npred_index_bottom <span class="sc">-</span> <span class="dv">1</span>],  <span class="co"># adjust if necessary</span></span>
+<span id="cb10-67"><a href="#cb10-67" tabindex="-1"></a>  <span class="at">AB =</span> y_pred_bottom_mat[, Npred_index_bottom]</span>
+<span id="cb10-68"><a href="#cb10-68" tabindex="-1"></a>)</span>
+<span id="cb10-69"><a href="#cb10-69" tabindex="-1"></a>preds_post_all <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(preds_post_all, pred_post_init)</span></code></pre></div>
 </div>
 <div id="rolling-one-step-ahead-forecasts" class="section level3">
 <h3>2.4 Rolling one-step-ahead forecasts</h3>
@@ -718,8 +719,8 @@ number of iterations or shorten the rolling window.</p>
 <span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a>  <span class="fu">assign</span>(<span class="st">&quot;y&quot;</span>, <span class="fu">as.matrix</span>(yA), <span class="at">envir =</span> jags_data_top_env)</span>
 <span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a>  </span>
 <span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a>  <span class="co"># short warm-up and sample</span></span>
-<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a>  <span class="fu">update</span>(mod_top, update_short)</span>
-<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a>  samps_top <span class="ot">&lt;-</span> <span class="fu">coda.samples</span>(mod_top, <span class="at">variable.names =</span> params_top,</span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a>  stats<span class="sc">::</span><span class="fu">update</span>(mod_top, update_short)</span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a>  samps_top <span class="ot">&lt;-</span> rjags<span class="sc">::</span><span class="fu">coda.samples</span>(mod_top, <span class="at">variable.names =</span> params_top,</span>
 <span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a>                            <span class="at">n.iter =</span> sample_short, <span class="at">thin =</span> thin_short)</span>
 <span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a>  </span>
 <span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a>  <span class="co"># extract means and posterior predictive draws</span></span>
@@ -739,8 +740,8 @@ number of iterations or shorten the rolling window.</p>
 <span id="cb11-41"><a href="#cb11-41" tabindex="-1"></a>  <span class="fu">assign</span>(<span class="st">&quot;N_pred&quot;</span>, N_pred_bottom, <span class="at">envir =</span> jags_data_bottom_env)</span>
 <span id="cb11-42"><a href="#cb11-42" tabindex="-1"></a>  <span class="fu">assign</span>(<span class="st">&quot;y&quot;</span>, <span class="fu">as.matrix</span>(yB), <span class="at">envir =</span> jags_data_bottom_env)</span>
 <span id="cb11-43"><a href="#cb11-43" tabindex="-1"></a>  </span>
-<span id="cb11-44"><a href="#cb11-44" tabindex="-1"></a>  <span class="fu">update</span>(mod_bottom, update_short)</span>
-<span id="cb11-45"><a href="#cb11-45" tabindex="-1"></a>  samps_bottom <span class="ot">&lt;-</span> <span class="fu">coda.samples</span>(mod_bottom, <span class="at">variable.names =</span> params_bottom,</span>
+<span id="cb11-44"><a href="#cb11-44" tabindex="-1"></a>  stats<span class="sc">::</span><span class="fu">update</span>(mod_bottom, update_short)</span>
+<span id="cb11-45"><a href="#cb11-45" tabindex="-1"></a>  samps_bottom <span class="ot">&lt;-</span> rjags<span class="sc">::</span><span class="fu">coda.samples</span>(mod_bottom, <span class="at">variable.names =</span> params_bottom,</span>
 <span id="cb11-46"><a href="#cb11-46" tabindex="-1"></a>                               <span class="at">n.iter =</span> sample_short, <span class="at">thin =</span> thin_short)</span>
 <span id="cb11-47"><a href="#cb11-47" tabindex="-1"></a>  </span>
 <span id="cb11-48"><a href="#cb11-48" tabindex="-1"></a>  y_pred_bottom_mat <span class="ot">&lt;-</span> <span class="fu">samples_to_matrix</span>(samps_bottom, <span class="st">&quot;y_pred&quot;</span>)</span>
@@ -774,8 +775,8 @@ number of iterations or shorten the rolling window.</p>
 <span id="cb11-76"><a href="#cb11-76" tabindex="-1"></a>    <span class="at">AB =</span> y_pred_bottom_mat[, Npred_idx_bottom]</span>
 <span id="cb11-77"><a href="#cb11-77" tabindex="-1"></a>  )</span>
 <span id="cb11-78"><a href="#cb11-78" tabindex="-1"></a>  </span>
-<span id="cb11-79"><a href="#cb11-79" tabindex="-1"></a>  preds_mean_all <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(preds_mean_all, <span class="fu">as.data.frame</span>(preds_mean))</span>
-<span id="cb11-80"><a href="#cb11-80" tabindex="-1"></a>  preds_post_all <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(preds_post_all, pred_post)</span>
+<span id="cb11-79"><a href="#cb11-79" tabindex="-1"></a>  preds_mean_all <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(preds_mean_all, <span class="fu">as.data.frame</span>(preds_mean))</span>
+<span id="cb11-80"><a href="#cb11-80" tabindex="-1"></a>  preds_post_all <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(preds_post_all, pred_post)</span>
 <span id="cb11-81"><a href="#cb11-81" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div id="model-outputs" class="section level3">
@@ -819,43 +820,43 @@ both the top-level and bottom-level series.</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>mu_mean <span class="ot">&lt;-</span> mu_estimates[[<span class="dv">1</span>]] <span class="co"># means</span></span>
 <span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co"># ---- Top-level (A) ------------------------------------------------</span></span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>mu_top <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>mu_top <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
 <span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">param =</span> <span class="fu">names</span>(mu_mean[[<span class="dv">1</span>]]),</span>
 <span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  <span class="at">estimate =</span> mu_mean[[<span class="dv">1</span>]]</span>
 <span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
-<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(</span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">separate_wider_delim</span>(</span>
 <span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>    <span class="at">col =</span> param,</span>
 <span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>    <span class="at">names =</span> <span class="fu">c</span>(<span class="st">&quot;Time&quot;</span>, <span class="st">&quot;index_top&quot;</span>),</span>
 <span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a>    <span class="at">delim =</span> <span class="st">&quot;,&quot;</span></span>
 <span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
 <span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a>    <span class="at">Time =</span> <span class="fu">gsub</span>(<span class="st">&quot;mu</span><span class="sc">\\</span><span class="st">[&quot;</span>, <span class="st">&quot;&quot;</span>, Time),</span>
 <span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a>    <span class="at">index_top =</span> <span class="fu">gsub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">]&quot;</span>, <span class="st">&quot;&quot;</span>, index_top),</span>
 <span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a>    <span class="at">Node =</span> <span class="fu">ifelse</span>(index_top <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;A&quot;</span>, <span class="cn">NA</span>)</span>
 <span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a>  <span class="fu">select</span>(Time, Node, estimate) <span class="sc">%&gt;%</span></span>
-<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate)</span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Time, Node, estimate) <span class="sc">%&gt;%</span></span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate)</span>
 <span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a></span>
 <span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a><span class="co"># ---- Bottom-level (AA, AB) ----------------------------------------</span></span>
 <span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a>mu_bottom <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
 <span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a>  <span class="at">param =</span> <span class="fu">names</span>(mu_mean[[<span class="dv">2</span>]]),</span>
 <span id="cb13-24"><a href="#cb13-24" tabindex="-1"></a>  <span class="at">estimate =</span> mu_mean[[<span class="dv">2</span>]]</span>
 <span id="cb13-25"><a href="#cb13-25" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
-<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(</span>
+<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">separate_wider_delim</span>(</span>
 <span id="cb13-27"><a href="#cb13-27" tabindex="-1"></a>    <span class="at">col =</span> param,</span>
 <span id="cb13-28"><a href="#cb13-28" tabindex="-1"></a>    <span class="at">names =</span> <span class="fu">c</span>(<span class="st">&quot;Time&quot;</span>, <span class="st">&quot;index_bottom&quot;</span>),</span>
 <span id="cb13-29"><a href="#cb13-29" tabindex="-1"></a>    <span class="at">delim =</span> <span class="st">&quot;,&quot;</span></span>
 <span id="cb13-30"><a href="#cb13-30" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb13-31"><a href="#cb13-31" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb13-31"><a href="#cb13-31" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
 <span id="cb13-32"><a href="#cb13-32" tabindex="-1"></a>    <span class="at">Time =</span> <span class="fu">gsub</span>(<span class="st">&quot;mu</span><span class="sc">\\</span><span class="st">[&quot;</span>, <span class="st">&quot;&quot;</span>, Time),</span>
 <span id="cb13-33"><a href="#cb13-33" tabindex="-1"></a>    <span class="at">index_bottom =</span> <span class="fu">gsub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">]&quot;</span>, <span class="st">&quot;&quot;</span>, index_bottom),</span>
 <span id="cb13-34"><a href="#cb13-34" tabindex="-1"></a>    <span class="at">Node =</span> <span class="fu">ifelse</span>(index_bottom <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;AA&quot;</span>, <span class="st">&quot;AB&quot;</span>)</span>
 <span id="cb13-35"><a href="#cb13-35" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb13-36"><a href="#cb13-36" tabindex="-1"></a>  <span class="fu">select</span>(Time, Node, estimate) <span class="sc">%&gt;%</span></span>
-<span id="cb13-37"><a href="#cb13-37" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate)</span>
+<span id="cb13-36"><a href="#cb13-36" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Time, Node, estimate) <span class="sc">%&gt;%</span></span>
+<span id="cb13-37"><a href="#cb13-37" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate)</span>
 <span id="cb13-38"><a href="#cb13-38" tabindex="-1"></a></span>
 <span id="cb13-39"><a href="#cb13-39" tabindex="-1"></a><span class="co"># Combined latent mean estimates</span></span>
-<span id="cb13-40"><a href="#cb13-40" tabindex="-1"></a>mu_mean_df <span class="ot">&lt;-</span> <span class="fu">left_join</span>(mu_top, mu_bottom)</span></code></pre></div>
+<span id="cb13-40"><a href="#cb13-40" tabindex="-1"></a>mu_mean_df <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">left_join</span>(mu_top, mu_bottom)</span></code></pre></div>
 </div>
 <div id="step-3.2-latent-state-estimates-posterior-samples" class="section level4">
 <h4>Step 3.2: Latent state estimates (posterior samples)</h4>
@@ -864,51 +865,51 @@ are useful for uncertainty visualisation and probabilistic scoring.</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>mu_post <span class="ot">&lt;-</span> mu_estimates[[<span class="dv">2</span>]]</span>
 <span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co"># ---- Top-level posterior samples ----------------------------------</span></span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>mu_top_post <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(mu_post[[<span class="dv">1</span>]]) <span class="sc">%&gt;%</span></span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sample_id =</span> <span class="fu">row_number</span>()) <span class="sc">%&gt;%</span></span>
-<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>mu_top_post <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">as_tibble</span>(mu_post[[<span class="dv">1</span>]]) <span class="sc">%&gt;%</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">sample_id =</span> <span class="fu">row_number</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">pivot_longer</span>(</span>
 <span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>    <span class="at">cols =</span> <span class="fu">everything</span>(),</span>
 <span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">&quot;param&quot;</span>,</span>
 <span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">&quot;estimate&quot;</span></span>
 <span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">separate_wider_delim</span>(</span>
 <span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>    <span class="at">col =</span> param,</span>
 <span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>    <span class="at">names =</span> <span class="fu">c</span>(<span class="st">&quot;Time&quot;</span>, <span class="st">&quot;index_top&quot;</span>),</span>
 <span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>    <span class="at">delim =</span> <span class="st">&quot;,&quot;</span></span>
 <span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
 <span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>    <span class="at">Time =</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">&quot;mu</span><span class="sc">\\</span><span class="st">[&quot;</span>, <span class="st">&quot;&quot;</span>, Time)),</span>
 <span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a>    <span class="at">index_top =</span> <span class="fu">gsub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">]&quot;</span>, <span class="st">&quot;&quot;</span>, index_top),</span>
 <span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a>    <span class="at">Node =</span> <span class="fu">ifelse</span>(index_top <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;A&quot;</span>, <span class="cn">NA</span>)</span>
 <span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a>  <span class="fu">select</span>(Time, sample_id, Node, estimate) <span class="sc">%&gt;%</span></span>
-<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate) <span class="sc">%&gt;%</span></span>
-<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a>  <span class="fu">filter</span>(Time <span class="sc">&lt;</span> <span class="dv">200</span>)</span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Time, sample_id, Node, estimate) <span class="sc">%&gt;%</span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate) <span class="sc">%&gt;%</span></span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Time <span class="sc">&lt;</span> <span class="dv">200</span>)</span>
 <span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a></span>
 <span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a><span class="co"># ---- Bottom-level posterior samples -------------------------------</span></span>
-<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a>mu_bottom_post <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(mu_post[[<span class="dv">2</span>]]) <span class="sc">%&gt;%</span></span>
-<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sample_id =</span> <span class="fu">row_number</span>()) <span class="sc">%&gt;%</span></span>
-<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a>mu_bottom_post <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">as_tibble</span>(mu_post[[<span class="dv">2</span>]]) <span class="sc">%&gt;%</span></span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">sample_id =</span> <span class="fu">row_number</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">pivot_longer</span>(</span>
 <span id="cb14-29"><a href="#cb14-29" tabindex="-1"></a>    <span class="at">cols =</span> <span class="fu">everything</span>(),</span>
 <span id="cb14-30"><a href="#cb14-30" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">&quot;param&quot;</span>,</span>
 <span id="cb14-31"><a href="#cb14-31" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">&quot;estimate&quot;</span></span>
 <span id="cb14-32"><a href="#cb14-32" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb14-33"><a href="#cb14-33" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(</span>
+<span id="cb14-33"><a href="#cb14-33" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">separate_wider_delim</span>(</span>
 <span id="cb14-34"><a href="#cb14-34" tabindex="-1"></a>    <span class="at">col =</span> param,</span>
 <span id="cb14-35"><a href="#cb14-35" tabindex="-1"></a>    <span class="at">names =</span> <span class="fu">c</span>(<span class="st">&quot;Time&quot;</span>, <span class="st">&quot;index_bottom&quot;</span>),</span>
 <span id="cb14-36"><a href="#cb14-36" tabindex="-1"></a>    <span class="at">delim =</span> <span class="st">&quot;,&quot;</span></span>
 <span id="cb14-37"><a href="#cb14-37" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb14-38"><a href="#cb14-38" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-38"><a href="#cb14-38" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
 <span id="cb14-39"><a href="#cb14-39" tabindex="-1"></a>    <span class="at">Time =</span> <span class="fu">as.numeric</span>(<span class="fu">gsub</span>(<span class="st">&quot;mu</span><span class="sc">\\</span><span class="st">[&quot;</span>, <span class="st">&quot;&quot;</span>, Time)),</span>
 <span id="cb14-40"><a href="#cb14-40" tabindex="-1"></a>    <span class="at">index_bottom =</span> <span class="fu">gsub</span>(<span class="st">&quot;</span><span class="sc">\\</span><span class="st">]&quot;</span>, <span class="st">&quot;&quot;</span>, index_bottom),</span>
 <span id="cb14-41"><a href="#cb14-41" tabindex="-1"></a>    <span class="at">Node =</span> <span class="fu">ifelse</span>(index_bottom <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;AA&quot;</span>, <span class="st">&quot;AB&quot;</span>)</span>
 <span id="cb14-42"><a href="#cb14-42" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb14-43"><a href="#cb14-43" tabindex="-1"></a>  <span class="fu">select</span>(Time, sample_id, Node, estimate) <span class="sc">%&gt;%</span></span>
-<span id="cb14-44"><a href="#cb14-44" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate) <span class="sc">%&gt;%</span></span>
-<span id="cb14-45"><a href="#cb14-45" tabindex="-1"></a>  <span class="fu">filter</span>(Time <span class="sc">&lt;</span> <span class="dv">200</span>)</span>
+<span id="cb14-43"><a href="#cb14-43" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Time, sample_id, Node, estimate) <span class="sc">%&gt;%</span></span>
+<span id="cb14-44"><a href="#cb14-44" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> estimate) <span class="sc">%&gt;%</span></span>
+<span id="cb14-45"><a href="#cb14-45" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Time <span class="sc">&lt;</span> <span class="dv">200</span>)</span>
 <span id="cb14-46"><a href="#cb14-46" tabindex="-1"></a></span>
 <span id="cb14-47"><a href="#cb14-47" tabindex="-1"></a><span class="co"># Combined posterior samples</span></span>
-<span id="cb14-48"><a href="#cb14-48" tabindex="-1"></a>mu_post_df <span class="ot">&lt;-</span> <span class="fu">left_join</span>(mu_top_post, mu_bottom_post)</span></code></pre></div>
+<span id="cb14-48"><a href="#cb14-48" tabindex="-1"></a>mu_post_df <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">left_join</span>(mu_top_post, mu_bottom_post)</span></code></pre></div>
 </div>
 <div id="step-3.3-one-step-ahead-predictive-means" class="section level4">
 <h4>Step 3.3: One-step-ahead predictive means</h4>
@@ -916,21 +917,21 @@ are useful for uncertainty visualisation and probabilistic scoring.</p>
 in the hierarchy. This object contains both predictive means and
 estimates of the Beta precision parameters (phi).</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>pred_ysim <span class="ot">&lt;-</span> preds_mean_all <span class="sc">%&gt;%</span></span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="fu">rename</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(</span>
 <span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>    <span class="at">AA =</span> pred_AA,</span>
 <span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>    <span class="at">AB =</span> pred_AB</span>
 <span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>  <span class="fu">select</span>(Time, A, AA, AB, phi_A, phi_AA, phi_AB)</span></code></pre></div>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Time, A, AA, AB, phi_A, phi_AA, phi_AB)</span></code></pre></div>
 </div>
 <div id="step-3.4-one-step-ahead-posterior-predictive-samples" class="section level4">
 <h4>Step 3.4: One-step-ahead posterior predictive samples</h4>
 <p>Finally, we load the posterior predictive draws, which can be used to
 compute proper scoring rules or visualize forecast uncertainty.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>post_ysim <span class="ot">&lt;-</span> preds_post_all <span class="sc">%&gt;%</span></span>
-<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  <span class="fu">select</span>(Time, A, AA, AB) <span class="sc">%&gt;%</span></span>
-<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="fu">group_by</span>(Time) <span class="sc">%&gt;%</span></span>
-<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sample_id =</span> <span class="fu">row_number</span>())</span></code></pre></div>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Time, A, AA, AB) <span class="sc">%&gt;%</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">group_by</span>(Time) <span class="sc">%&gt;%</span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a> dplyr<span class="sc">::</span> <span class="fu">mutate</span>(<span class="at">sample_id =</span> dplyr<span class="sc">::</span><span class="fu">row_number</span>())</span></code></pre></div>
 </div>
 </div>
 <div id="step-4-coherent-hierarchical-forecasting" class="section level2">
@@ -955,8 +956,8 @@ do so.</p>
 <span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a></span>
 <span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co"># Using the test set of years </span></span>
 <span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>test_years <span class="ot">&lt;-</span> sim_data <span class="sc">%&gt;%</span> </span>
-<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a>  <span class="fu">select</span>(Time) <span class="sc">%&gt;%</span> </span>
-<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a>  <span class="fu">filter</span>(Time <span class="sc">&gt;=</span> <span class="dv">200</span>) <span class="sc">%&gt;%</span> <span class="co"># validation test set</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(Time) <span class="sc">%&gt;%</span> </span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(Time <span class="sc">&gt;=</span> <span class="dv">200</span>) <span class="sc">%&gt;%</span> <span class="co"># validation test set</span></span>
 <span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a>  <span class="fu">unlist</span>() <span class="sc">%&gt;%</span> </span>
 <span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a>  <span class="fu">as.vector</span>()</span>
 <span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a></span>
@@ -964,7 +965,7 @@ do so.</p>
 <span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a>groups <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="dv">2</span>, <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>))  <span class="co"># Hierarchical structure </span></span>
 <span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a></span>
 <span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a><span class="co"># Create results dataframe to store results in</span></span>
-<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a>rec_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>()</span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a>rec_df <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>()</span>
 <span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a></span>
 <span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a><span class="co"># Set up tilting inputs</span></span>
 <span id="cb17-22"><a href="#cb17-22" tabindex="-1"></a>f_tilde_exp <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
@@ -984,8 +985,8 @@ do so.</p>
 <span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  t_i <span class="ot">&lt;-</span> test_years[i]</span>
 <span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a></span>
 <span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>  <span class="co"># Extract posterior samples</span></span>
-<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>  P_top     <span class="ot">&lt;-</span> post_ysim <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Time<span class="sc">==</span>t_i) <span class="sc">%&gt;%</span> <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">all_of</span>(top_node))</span>
-<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>  P_bottom  <span class="ot">&lt;-</span> post_ysim <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Time<span class="sc">==</span>t_i)  <span class="sc">%&gt;%</span> <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">all_of</span>(bottom_nodes))</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>  P_top     <span class="ot">&lt;-</span> post_ysim <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(Time<span class="sc">==</span>t_i) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(dplyr<span class="sc">::</span><span class="fu">all_of</span>(top_node))</span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>  P_bottom  <span class="ot">&lt;-</span> post_ysim <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(Time<span class="sc">==</span>t_i)  <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(dplyr<span class="sc">::</span><span class="fu">all_of</span>(bottom_nodes))</span>
 <span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a></span>
 <span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a>  <span class="co"># Extract mean phi for top + bottom</span></span>
 <span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a>  phi_top    <span class="ot">&lt;-</span> pred_ysim[i, <span class="st">&quot;phi_A&quot;</span>]</span>
@@ -1016,44 +1017,43 @@ do so.</p>
 <span id="cb18-36"><a href="#cb18-36" tabindex="-1"></a>  <span class="cf">for</span> (b <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) {</span>
 <span id="cb18-37"><a href="#cb18-37" tabindex="-1"></a>    dens_i <span class="ot">&lt;-</span> bottom_dens[[b]]</span>
 <span id="cb18-38"><a href="#cb18-38" tabindex="-1"></a></span>
-<span id="cb18-39"><a href="#cb18-39" tabindex="-1"></a>    tmp <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb18-39"><a href="#cb18-39" tabindex="-1"></a>    tmp <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
 <span id="cb18-40"><a href="#cb18-40" tabindex="-1"></a>      <span class="at">Node    =</span> bottom_nodes[b],</span>
 <span id="cb18-41"><a href="#cb18-41" tabindex="-1"></a>      <span class="at">Time    =</span> t_i,</span>
 <span id="cb18-42"><a href="#cb18-42" tabindex="-1"></a>      <span class="at">Z       =</span> z_values,</span>
-<span id="cb18-43"><a href="#cb18-43" tabindex="-1"></a>      <span class="at">Density =</span> <span class="fu">approx</span>(dens_i<span class="sc">$</span>x, dens_i<span class="sc">$</span>y,</span>
-<span id="cb18-44"><a href="#cb18-44" tabindex="-1"></a>                       <span class="at">xout =</span> z_values, <span class="at">rule =</span> <span class="dv">2</span>)<span class="sc">$</span>y</span>
-<span id="cb18-45"><a href="#cb18-45" tabindex="-1"></a>    )</span>
-<span id="cb18-46"><a href="#cb18-46" tabindex="-1"></a></span>
-<span id="cb18-47"><a href="#cb18-47" tabindex="-1"></a>    rec_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(rec_df, tmp)</span>
-<span id="cb18-48"><a href="#cb18-48" tabindex="-1"></a>  }</span>
-<span id="cb18-49"><a href="#cb18-49" tabindex="-1"></a></span>
-<span id="cb18-50"><a href="#cb18-50" tabindex="-1"></a>  <span class="co"># Convolution to get A distribution</span></span>
-<span id="cb18-51"><a href="#cb18-51" tabindex="-1"></a>  Density_top <span class="ot">&lt;-</span> <span class="fu">Beta_convolution_density_parallel</span>(</span>
-<span id="cb18-52"><a href="#cb18-52" tabindex="-1"></a>    z_values,</span>
-<span id="cb18-53"><a href="#cb18-53" tabindex="-1"></a>    alpha_bottom,</span>
-<span id="cb18-54"><a href="#cb18-54" tabindex="-1"></a>    beta_bottom,</span>
-<span id="cb18-55"><a href="#cb18-55" tabindex="-1"></a>    weighted_samps,</span>
-<span id="cb18-56"><a href="#cb18-56" tabindex="-1"></a>    weights_bottom</span>
-<span id="cb18-57"><a href="#cb18-57" tabindex="-1"></a>  )</span>
-<span id="cb18-58"><a href="#cb18-58" tabindex="-1"></a></span>
-<span id="cb18-59"><a href="#cb18-59" tabindex="-1"></a>  tmp_top <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb18-60"><a href="#cb18-60" tabindex="-1"></a>    <span class="at">Node    =</span> top_node,</span>
-<span id="cb18-61"><a href="#cb18-61" tabindex="-1"></a>    <span class="at">Time    =</span> t_i,</span>
-<span id="cb18-62"><a href="#cb18-62" tabindex="-1"></a>    <span class="at">Z       =</span> z_values,</span>
-<span id="cb18-63"><a href="#cb18-63" tabindex="-1"></a>    <span class="at">Density =</span> Density_top</span>
-<span id="cb18-64"><a href="#cb18-64" tabindex="-1"></a>  )</span>
-<span id="cb18-65"><a href="#cb18-65" tabindex="-1"></a></span>
-<span id="cb18-66"><a href="#cb18-66" tabindex="-1"></a>  rec_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(rec_df, tmp_top)</span>
-<span id="cb18-67"><a href="#cb18-67" tabindex="-1"></a>}</span></code></pre></div>
+<span id="cb18-43"><a href="#cb18-43" tabindex="-1"></a>      <span class="at">Density =</span> stats<span class="sc">::</span><span class="fu">approx</span>(dens_i<span class="sc">$</span>x, dens_i<span class="sc">$</span>y,<span class="at">xout =</span> z_values, <span class="at">rule =</span> <span class="dv">2</span>)<span class="sc">$</span>y</span>
+<span id="cb18-44"><a href="#cb18-44" tabindex="-1"></a>    )</span>
+<span id="cb18-45"><a href="#cb18-45" tabindex="-1"></a></span>
+<span id="cb18-46"><a href="#cb18-46" tabindex="-1"></a>    rec_df <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(rec_df, tmp)</span>
+<span id="cb18-47"><a href="#cb18-47" tabindex="-1"></a>  }</span>
+<span id="cb18-48"><a href="#cb18-48" tabindex="-1"></a></span>
+<span id="cb18-49"><a href="#cb18-49" tabindex="-1"></a>  <span class="co"># Convolution to get A distribution</span></span>
+<span id="cb18-50"><a href="#cb18-50" tabindex="-1"></a>  Density_top <span class="ot">&lt;-</span> <span class="fu">Beta_convolution_density_parallel</span>(</span>
+<span id="cb18-51"><a href="#cb18-51" tabindex="-1"></a>    z_values,</span>
+<span id="cb18-52"><a href="#cb18-52" tabindex="-1"></a>    alpha_bottom,</span>
+<span id="cb18-53"><a href="#cb18-53" tabindex="-1"></a>    beta_bottom,</span>
+<span id="cb18-54"><a href="#cb18-54" tabindex="-1"></a>    weighted_samps,</span>
+<span id="cb18-55"><a href="#cb18-55" tabindex="-1"></a>    weights_bottom</span>
+<span id="cb18-56"><a href="#cb18-56" tabindex="-1"></a>  )</span>
+<span id="cb18-57"><a href="#cb18-57" tabindex="-1"></a></span>
+<span id="cb18-58"><a href="#cb18-58" tabindex="-1"></a>  tmp_top <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb18-59"><a href="#cb18-59" tabindex="-1"></a>    <span class="at">Node    =</span> top_node,</span>
+<span id="cb18-60"><a href="#cb18-60" tabindex="-1"></a>    <span class="at">Time    =</span> t_i,</span>
+<span id="cb18-61"><a href="#cb18-61" tabindex="-1"></a>    <span class="at">Z       =</span> z_values,</span>
+<span id="cb18-62"><a href="#cb18-62" tabindex="-1"></a>    <span class="at">Density =</span> Density_top</span>
+<span id="cb18-63"><a href="#cb18-63" tabindex="-1"></a>  )</span>
+<span id="cb18-64"><a href="#cb18-64" tabindex="-1"></a></span>
+<span id="cb18-65"><a href="#cb18-65" tabindex="-1"></a>  rec_df <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(rec_df, tmp_top)</span>
+<span id="cb18-66"><a href="#cb18-66" tabindex="-1"></a>}</span></code></pre></div>
 </div>
 <div id="step-4.3-tilt-the-convoluted-pdf-towards-the-predictive-mean" class="section level4">
 <h4>Step 4.3: Tilt the convoluted PDF towards the predictive mean</h4>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="cf">for</span> (t <span class="cf">in</span> <span class="fu">seq_along</span>(test_years)) {</span>
 <span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  <span class="co"># Extract convolution densities for these nodes</span></span>
 <span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  rec_dens_df <span class="ot">&lt;-</span> rec_df <span class="sc">%&gt;%</span></span>
-<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>    <span class="fu">filter</span>(Time <span class="sc">==</span> test_years[t]) <span class="sc">%&gt;%</span></span>
-<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> Density) <span class="sc">%&gt;%</span></span>
-<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>    <span class="fu">select</span>(Z, <span class="fu">all_of</span>(tilted_nodes))</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">filter</span>(Time <span class="sc">==</span> test_years[t]) <span class="sc">%&gt;%</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>    tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> Node, <span class="at">values_from =</span> Density) <span class="sc">%&gt;%</span></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(Z, dplyr<span class="sc">::</span><span class="fu">all_of</span>(tilted_nodes))</span>
 <span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a></span>
 <span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a>  <span class="co"># Predicted means</span></span>
 <span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>  mu_theory <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(pred_ysim[t, tilted_nodes])</span>
@@ -1097,7 +1097,7 @@ do so.</p>
 <span id="cb19-47"><a href="#cb19-47" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
 <span id="cb19-48"><a href="#cb19-48" tabindex="-1"></a>      lower <span class="ot">&lt;-</span> nu_grid[idx[<span class="dv">1</span>]]</span>
 <span id="cb19-49"><a href="#cb19-49" tabindex="-1"></a>      upper <span class="ot">&lt;-</span> nu_grid[idx[<span class="dv">1</span>] <span class="sc">+</span> <span class="dv">1</span>]</span>
-<span id="cb19-50"><a href="#cb19-50" tabindex="-1"></a>      nu_star <span class="ot">&lt;-</span> <span class="fu">uniroot</span>(moment_condition_tilting,</span>
+<span id="cb19-50"><a href="#cb19-50" tabindex="-1"></a>      nu_star <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">uniroot</span>(moment_condition_tilting,</span>
 <span id="cb19-51"><a href="#cb19-51" tabindex="-1"></a>                         <span class="at">lower =</span> lower,</span>
 <span id="cb19-52"><a href="#cb19-52" tabindex="-1"></a>                         <span class="at">upper =</span> upper,</span>
 <span id="cb19-53"><a href="#cb19-53" tabindex="-1"></a>                         <span class="at">f_y =</span> f_y,</span>
@@ -1110,7 +1110,7 @@ do so.</p>
 <span id="cb19-60"><a href="#cb19-60" tabindex="-1"></a>    <span class="co"># Tilted density + samples</span></span>
 <span id="cb19-61"><a href="#cb19-61" tabindex="-1"></a>    f_tilt_i <span class="ot">&lt;-</span> <span class="fu">tilted_density_cont</span>(nu_star, f_y, y_vals)</span>
 <span id="cb19-62"><a href="#cb19-62" tabindex="-1"></a>    f_tilt_i <span class="ot">&lt;-</span> f_tilt_i <span class="sc">/</span> pracma<span class="sc">::</span><span class="fu">trapz</span>(y_vals, f_tilt_i)</span>
-<span id="cb19-63"><a href="#cb19-63" tabindex="-1"></a>    f_tilted[, i] <span class="ot">&lt;-</span> <span class="fu">approx</span>(y_vals, f_tilt_i, <span class="at">xout =</span> z_values, <span class="at">rule =</span> <span class="dv">2</span>)<span class="sc">$</span>y</span>
+<span id="cb19-63"><a href="#cb19-63" tabindex="-1"></a>    f_tilted[, i] <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">approx</span>(y_vals, f_tilt_i, <span class="at">xout =</span> z_values, <span class="at">rule =</span> <span class="dv">2</span>)<span class="sc">$</span>y</span>
 <span id="cb19-64"><a href="#cb19-64" tabindex="-1"></a></span>
 <span id="cb19-65"><a href="#cb19-65" tabindex="-1"></a>    tilted_samps[, i] <span class="ot">&lt;-</span> <span class="fu">sample</span>(y_vals, <span class="dv">5000</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>, <span class="at">prob =</span> f_tilt_i)</span>
 <span id="cb19-66"><a href="#cb19-66" tabindex="-1"></a></span>
