@@ -1,202 +1,167 @@
-## ----setup, message = FALSE, warning = FALSE----------------------------------
+## ----echo=TRUE, results='hide'------------------------------------------------
 set.seed(123)
+library(boundHTS)
+library(tidyverse)
 
-## -----------------------------------------------------------------------------
-N <- 2000 # Number of observations
-M <- 4 # Number of bottom level series
-
-
-## -----------------------------------------------------------------------------
-b0 <- stats::runif(M, min=0.4, max = 0.5) # M covariates
-b1 <- stats::runif(M, min=0.4, max = 0.5)
-b2 <- stats::runif(M, min=0.4, max = 0.5)
-x <- stats::runif(N, min = 0, max = 1) # N observations
-
-## ----echo=FALSE---------------------------------------------------------------
-cat("b0 coefficients: ", b0)
-cat("\n b1 coefficients: ", b1)
-cat("\n b2 coefficients: ", b2)
-cat("\n x covariate: ", head(x, n=10))
+data("poisson_sim_data")         # load data
+head(poisson_sim_data)
 
 
 ## -----------------------------------------------------------------------------
-lambda <- matrix(NA, nrow = N, ncol = M)
-y <- matrix(NA, nrow = N, ncol = M)
+hts_data_long <- tidyr::pivot_longer(poisson_sim_data, cols = -c(Time), names_to = "Level", values_to = "Value")
 
-for(m in 1:M) {
-  lambda[, m] <- exp(b0[m] + b1[m] * x + b2[m] * x^2)
-  y[, m] <- stats::rpois(N, lambda = lambda[, m])
-}
-
-colnames(y) <- c("AA", "AB", "BA", "BB")
-head(y)
-
-
-## -----------------------------------------------------------------------------
-eps <- matrix(NA, nrow = N, ncol = M)
-
-eps[,1] <- sample(c(-1,0,1), N, replace = TRUE, prob = c(0.3, 0.4, 0.3))
-eps[,2] <- sample(c(-1,0,1), N, replace = TRUE, prob = c(0.5, 0.4, 0.1))
-eps[,3] <- sample(c(-1,0,1), N, replace = TRUE, prob = c(0.33, 0.33, 0.34))
-eps[,4] <- sample(c(-1,0,1), N, replace = TRUE, prob = c(0.2, 0.3, 0.5))
-
-
-## -----------------------------------------------------------------------------
-y_star <- matrix(NA, nrow = N, ncol = M)
-
-for(m in 1:M) {
-  y_star[, m] <- pmax(0, y[, m] + eps[, m])  # ensure non-negative counts
-}
-
-colnames(y_star) <- c("AA", "AB", "BA", "BB")
-head(y_star)
-
-
-## -----------------------------------------------------------------------------
-hist(y_star[,4], main = "Histogram of series BB", xlab = "Counts")
-
-
-## ----top-level----------------------------------------------------------------
-
-Tot = apply(y, 1, sum) # Top-level sum of the undisturbed series
-Tot = ifelse(Tot < 0, 0, Tot) # Ensure positivity
-
-# Final data set
-sim_data <- tibble::tibble(
-  X=x,
-  Tot  = Tot,
-  AA = y_star[,1], 
-  AB = y_star[,2],
-  BA = y_star[,3],
-  BB = y_star[,4]
-)
-
-
-## -----------------------------------------------------------------------------
-hts_data_long <- tidyr::pivot_longer(sim_data, cols = -c(X), names_to = "Level", values_to = "Value")
-
-ggplot2::ggplot(hts_data_long, ggplot2::aes(x = X, y = Value, color = Level)) +
+ggplot2::ggplot(hts_data_long, ggplot2::aes(x = Time, y = Value, color = Level)) +
   ggplot2::geom_line() +
-  ggplot2::labs(title = "Simulated hierarchical count", x = "X", y = "Count") +
+  ggplot2::labs(title = "Simulated hierarchical count", x = "Time", y = "Count") +
   ggplot2::theme_minimal() + 
   ggplot2::theme(legend.position = "none") +
   ggplot2::facet_wrap(~Level, scales='free')
 
 
 ## -----------------------------------------------------------------------------
-N <- nrow(sim_data) # 2000 rows
+N <- nrow(poisson_sim_data) # 2000 rows
 m <- 4 # bottom series
-n_series <- ncol(sim_data[,-1])
+n_series <- ncol(poisson_sim_data[,-1])
 n_train <- c(1:c(N-50)) # withhold the last 50 observations for validation
 test_indices <- c(length(n_train)+1):N
 n_samples <- length(test_indices)
+nodes <- c("Tot", "AA", "AB", "BA", "BB")
 sum_bottom <- c("AA", "AB", "BA", "BB")
-top_y_vals <- seq(from = 0, to = c(max(sim_data$Tot)+10))
-ally <- sim_data[,-c(1)] # remove covariates
+top_y_vals <- seq(from = 0, to = c(max(poisson_sim_data$Tot)+10))
+ally <- poisson_sim_data[,-c(1)] # remove covariates
 
 
 ## ----poisson-regression-------------------------------------------------------
 # Containers for results
-poiss_reg <- list()   # fitted GLMs at each step
+lambda_list <- list()
+fitted_list <- list()
 poiss_GLM_reg <- list()
-lambda_list <- list()   # estimated Poisson rates (lambda)
-fitted_list <- list()   # predictive Poisson samples
 
-# Bottom-level series
-sum_bottom <- c("AA", "AB", "BA", "BB")
+for(t in seq_along(test_indices)) {
 
-for (t in seq_along(test_indices)) {
+  my_train <- seq_len(test_indices[t]-1)
 
-  # Training indices (up to time t-1)
-  train_idx <- seq_len(test_indices[t] - 1)
+  lambda_est <- matrix(NA, nrow = length(my_train) + 1, ncol = length(nodes))
+  fits <- matrix(NA, nrow = length(my_train) + 1, ncol = length(nodes))
+  colnames(lambda_est) <- colnames(fits) <- nodes
 
-  # Store estimated lambdas and predictive samples
-  lambda_est <- fits <- matrix(
-    NA,
-    nrow = length(train_idx) + 1,
-    ncol = n_series
-  )
+  poiss_reg <- list()
 
-  colnames(lambda_est) <- colnames(fits) <- colnames(ally)
+  for(i in nodes) {
 
-  # Fit Poisson GLM separately for each bottom-level series
-  for (series in colnames(ally)) {
+    y_train <- poisson_sim_data[my_train, ] %>% pull(all_of(i))
 
-    # Quadratic Poisson regression
-    formula_str <- paste(series, "~ X + I(X^2)")
-    fit <- stats::glm(
-      formula = stats::as.formula(formula_str),
-      data    = sim_data[train_idx, c("X", series)],
-      family = "poisson"
-    )
+    # Fit tsglm on training series
+    fit <- tscount::tsglm(y_train, model = list(past_obs = 1), link = "log")
+    poiss_reg[[i]] <- fit
 
-    # Store fitted model
-    poiss_reg[[series]] <- fit
+    # Fitted values for the training period
+    lambda_est[1:length(my_train), i] <- fitted(fit)
 
-    # In-sample fitted Poisson means
-    lambda_est[train_idx, series] <- fit$fitted.values
+    # One-step-ahead forecast
+    lambda_est[length(my_train)+1, i] <- predict(fit, n.ahead = 1)$pred
 
-    # One-step-ahead Poisson mean
-    lambda_est[test_indices[t], series] <-
-      stats::predict(fit, newdata = sim_data[test_indices[t], c("X", series)])
-
-    # Draw predictive samples from Poisson distribution
-    fits[, series] <- stats::rpois(
-      n = test_indices[t],
-      lambda = lambda_est[, series]
-    )
+    # Simulate Poisson counts based on lambda
+    fits[, i] <- rpois(length(lambda_est[, i]), lambda = lambda_est[, i])
   }
 
-  # Save results for this forecast origin
   lambda_list[[t]] <- lambda_est
   fitted_list[[t]] <- fits
   poiss_GLM_reg[[t]] <- poiss_reg
 }
 
 
-## ----eval=FALSE---------------------------------------------------------------
-# f_tilde_exp <- list()
-# nu_exp <- list()
-# f_y <- vector()
-# bottom_sum <- c("AA", "AB", "BA", "BB")
-# pmf_values <- vector()
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Apply to predictions
-# for(t in 1:length(test_indices)) {
-#   # lambda values
-#   lambda_vals <- as.data.frame(lambda_list[[t]])
-#   mu_theory <- as.vector(unlist(lambda_vals[test_indices[t], ])) # predictive mean
-# 
-#   lambda_bseries <- lambda_vals[test_indices[t],bottom_sum]
-#   lambda_conv <- sum(lambda_bseries) # sum poissons
-#   lambda_vec <- c(lambda_conv, as.numeric(lambda_bseries)) # convolution and bottom series lambda
-# 
-#   # fitted values
-#   fitted_vals <- tibble::as_tibble(fitted_list[[t]])
-#   fitted_bseries <- fitted_vals[test_indices[t],bottom_sum]
-# 
-#   # Construct tilted pmf for top and bottom series
-#   f_tilt <- matrix(NA, nrow = length(top_y_vals), ncol = length(lambda_vec))
-#   for(k in 1:length(lambda_vec)) {
-#     # Convolution step
-#     f_y <- stats::dpois(top_y_vals, lambda_vec[k]) # density of convolution
-# 
-#     # Solve for nu
-#     nu_star <- stats::uniroot(moment_condition_tilting, interval = c(-1, 1),
-#                        f_y = f_y, y_vals = top_y_vals,
-#                        mu_theory = mu_theory[k])$root
-# 
-#     f_tilt[,k] <- tilted_density_discrete(nu_star, f_y, top_y_vals)
-#   }
-#   colnames(f_tilt) <- colnames(fitted_vals)
-# 
-#   nu_exp[[t]] <- nu_star
-#   f_tilde_exp[[t]] <- f_tilt # density of top level
-# }
-# 
+## -----------------------------------------------------------------------------
+f_tilde_exp <- list()
+nu_exp <- list()
+f_y <- vector()
+pmf_values <- vector()
 
-## ----echo=FALSE, out.width = "100%",  fig.align = "center"--------------------
-knitr::include_graphics("visualisations/example_pois_tilted_density_testset_Tot.png")
+## -----------------------------------------------------------------------------
+# Apply to predictions
+for(t in 1:length(test_indices)) {
+  # lambda values
+  lambda_vals <- as.data.frame(lambda_list[[t]])
+  mu_theory <- as.vector(unlist(lambda_vals[test_indices[t], ])) # predictive mean
+  
+  lambda_bseries <- lambda_vals[test_indices[t],sum_bottom]
+  
+  # fitted values
+  fitted_vals <- tibble::as_tibble(fitted_list[[t]])
+  fitted_bseries <- fitted_vals[test_indices[t],sum_bottom]
+  
+  # Construct tilted pmf for top and bottom series
+  f_y_bottom <- matrix(NA, nrow = length(top_y_vals), ncol = length(lambda_bseries))
+  f_tilt <- matrix(NA, nrow = length(top_y_vals), ncol = length(mu_theory))
+  nu_star <- vector()
+  
+  # Construct densities
+  for(k in 1:length(lambda_bseries)) {
+    # Bottom series
+   f_y_bottom[,k] <- sapply(top_y_vals, function(x) {
+      mean(stats::dpois(x = x, lambda = as.numeric(lambda_bseries[k])))})
+   }
+  f_y_top <- Poisson_convolution(z_values = top_y_vals,
+                                 lambda_input = as.numeric(lambda_bseries),
+                                 point=TRUE)
+  f_y <- cbind(f_y_top, f_y_bottom)
+  
+  # Tilt density
+  for(k in 1:length(mu_theory)) {
+    tilted_dens <- tilt_density(mu_theory[k], top_y_vals, f_y[,k], discrete=TRUE) # tilt density
+    f_tilt[,k] <- tilted_dens$f_tilted
+  }
+  nu_star <- c(tilted_dens$nu_star, nu_star)
+  colnames(f_tilt) <- colnames(fitted_vals)
+  
+  nu_exp[[t]] <- nu_star
+  f_tilde_exp[[t]] <- f_tilt # density of top level 
+}
+
+
+## -----------------------------------------------------------------------------
+
+t=50
+
+t_idx <- test_indices[t]
+
+# Extract predictive means at time t
+lambda_mat <- lambda_list[[t]]
+lambda_t   <- lambda_mat[t_idx, ]
+
+lambda_bottom <- lambda_t[-1]
+  
+# density of convolution 
+conv_top_dens <- dpois(top_y_vals, sum(lambda_bottom))
+
+conv_plot <- data.frame(
+   y = top_y_vals,
+   pmf = conv_top_dens,
+   node = "Tot"
+)
+
+# tilted density
+df_plot <- data.frame(
+  y = rep(top_y_vals, ncol(f_tilde_exp[[t]])),
+  pmf = as.vector(f_tilde_exp[[t]]),
+  node = rep(colnames(f_tilde_exp[[t]]), each = length(top_y_vals))
+)
+
+means_df <- data.frame(
+  node = names(lambda_t),
+  mean = lambda_t
+  ) 
+  
+
+ggplot2::ggplot() +
+  ggplot2::geom_line(data = df_plot, ggplot2::aes(x = y, y = pmf, col='Tilted density')) +
+  ggplot2::geom_line(data = conv_plot, ggplot2::aes(x = y, y = pmf, col='Convoluted denisty')) +
+  ggplot2::geom_vline(data = means_df,
+             ggplot2::aes(xintercept = mean, linetype = "Predicitive mean")) +
+  ggplot2::facet_wrap(~ node, nrow=5) +
+  ggplot2::scale_colour_brewer(palette="Set1") +
+  ggplot2::labs(x = "Counts",
+       y = "Tilted probability mass")
 
 

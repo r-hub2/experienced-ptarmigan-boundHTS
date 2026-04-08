@@ -2,23 +2,45 @@
 % Please edit documentation in R/dZIB_4p.R
 \name{dZIB_4p}
 \alias{dZIB_4p}
-\title{Vectorized Zero Inflated 4 parameter Beta density}
+\title{Vectorized Zero-Inflated Four-Parameter Beta Density}
 \usage{
-dZIB_4p(z, Y_mc, phi_mc, zi_mc, upper, lower = 0)
+dZIB_4p(x, alpha_point, beta_point, zi_point, weight)
 }
 \arguments{
-\item{z}{evaluation points}
+\item{x}{evaluation points}
 
-\item{Y_mc}{Monte Carlo draws of Y}
+\item{alpha_point}{Point estimates of alpha (shape1) parameters for the Beta
+distribution for each observation.}
 
-\item{phi_mc}{Monte Carlo draws of Beta precision (n_draws x n_nodes x n_years)}
+\item{beta_point}{Point estimates of beta (shape2) parameters for the Beta
+distribution for each observation.}
 
-\item{zi_mc}{Monte Carlo draws of zero inflation (n_draws x n_nodes x n_years)}
+\item{zi_point}{Point estimates of zero inflation}
 
-\item{upper}{upper bound}
-
-\item{lower}{lower bound}
+\item{weight}{Numeric vector of weights used to combine the components
+into the aggregated density \eqn{Z} (length b).}
+}
+\value{
+A numeric vector containing the estimated density values for each Monte Carlo draw.
 }
 \description{
-Vectorized Zero Inflated 4 parameter Beta density
+Vectorized Zero-Inflated Four-Parameter Beta Density
+}
+\details{
+Computes the density of a zero-inflated four-parameter Beta distribution using Monte Carlo draws.
+The function evaluates the density at points \code{z} while accounting for hierarchical aggregation across nodes.
+}
+\examples{
+set.seed(1)
+n_draws <- 5
+n_nodes <- 2
+n_mc <- 10
+weighted_samps <- array(runif(n_mc*n_draws* n_nodes), dim = c(n_mc, n_draws, n_nodes))
+zi_point <- runif(n_nodes, 0, 0.2)
+alpha_point <- runif(n_nodes, 2, 5)
+beta_point  <- runif(n_nodes, 2, 5)
+weights <- rep(1, n_nodes)
+dZIB_4p(0.5, alpha_point[n_nodes], beta_point[n_nodes], zi_point[n_nodes],
+ weights[n_nodes])
+
 }

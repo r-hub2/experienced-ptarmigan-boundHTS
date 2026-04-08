@@ -1,9 +1,22 @@
 ## ----setup, message = FALSE, warning = FALSE----------------------------------
 set.seed(123)
+
+library(gamlss)
+library(gamlss.dist)
+library(tidyverse)
+library(boundHTS)
+
 n_obs   <- 400
 burn_in <- 150
 time    <- seq_len(n_obs)
 nodes <- c("A", "AA", "AB")
+
+beta_params <- function(mean, prec) {
+  alpha <- prec*mean
+  beta  <-  prec*(1-mean)
+  return(c(alpha, beta))
+}
+
 
 ## ----bottom-level-ar1---------------------------------------------------------
 # Bottom-level nodes: AA and AB
@@ -113,295 +126,327 @@ sim_data <- dplyr::tibble(
 )
 
 
-## ----brms-settings, eval=FALSE------------------------------------------------
-# training_data <- sim_data %>% filter(Time < 249)
-# test_times <- sort(unique(sim_data$Time[sim_data$Time >= 249]))
-# 
-# nodes <- c("A", "AA", "AB")
-# 
-# form_base <- bf(value ~ s(Time, k = 4),
-#                 phi ~ 1,
-#                 zi ~ 1)
-# 
-# prior <- c(
-#   brms::prior(normal(0, 1), class = "Intercept"),
-#   brms::prior(normal(log(30), 0.5), class = "Intercept", dpar = "phi"),
-#   brms::prior(normal(-4, 1), class = "Intercept", dpar = "zi"),
-#   brms::prior(exponential(2), class = "sds")
-# )
-# 
-# 
-# fits <- list(
-#   A  = brms::brm(brms::update(form_base, value ~ .),
-#                  family = zero_inflated_beta(),
-#                  data = training_data %>% rename(value = A),
-#                  prior = prior,
-#                  chains = 4, cores = 4, iter = 4000, warmup = 1000,
-#                  backend = "cmdstanr",
-#                  control = list(adapt_delta = 0.995, max_treedepth = 12)),
-# 
-#   AA = brms::brm(brms::update(form_base, value ~ .),
-#                  family = zero_inflated_beta(),
-#                  data = training_data %>% rename(value = AA),
-#                  prior = prior,
-#                  chains = 4, cores = 4, iter = 4000, warmup = 1000,
-#                  backend = "cmdstanr",
-#                  control = list(adapt_delta = 0.995, max_treedepth = 12)),
-# 
-#   AB = brms::brm(brms::update(form_base, value ~ .),
-#                  family = zero_inflated_beta(),
-#                  data = training_data %>% rename(value = AB),
-#                  prior = prior,
-#                  chains = 4, cores = 4, iter = 4000, warmup = 1000,
-#                  backend = "cmdstanr",
-#                  control = list(adapt_delta = 0.995, max_treedepth = 12)),
-# )
-# 
+## ----echo=TRUE, results='hide'------------------------------------------------
+forecasts_sims <- forecasts <- data.frame()
+nsim <- 1000
+n_testyears <- tail(sim_data$Time)
 
-## ----eval=FALSE---------------------------------------------------------------
-# cmdstanr::summary(fits$A)
-# plot(fits$A)
-# brms::pp_check(fits$A)
-# 
-# cmdstanr::summary(fits$AA)
-# plot(fits$AA)
-# brms::pp_check(fits$AA)
-# 
-# cmdstanr::summary(fits$AB)
-# plot(fits$AB)
-# brms::pp_check(fits$AB)
-# 
+# Create a lagged variable used for modelling
+sim_data$AA_lag <- dplyr::lag(sim_data$AA)
+sim_data$AB_lag <- dplyr::lag(sim_data$AB)
+sim_data$A_lag <- dplyr::lag(sim_data$A)
 
-## ----eval=FALSE---------------------------------------------------------------
-# n_draws <- 1000
-# n_nodes <- length(nodes)
-# n_times <- length(test_times)
-# 
-# forecast_results <- vector("list", n_times)
-# names(forecast_results) <- test_times
-# 
-# for (i in seq_along(test_times)) {
-# 
-#   t <- test_times[i]
-#   message("Forecasting time ", t)
-# 
-#   data_up_to_t <- sim_data %>% dplyr::filter(Time <= t)
-# 
-#   years <- sort(unique(data_up_to_t$Time))
-#   n_years <- length(years)
-# 
-#   pred_array <- array(NA, c(n_draws, n_nodes, n_years),
-#                       dimnames = list(NULL, nodes, years))
-#   phi_array  <- pred_array
-#   zi_array  <- pred_array
-# 
-#   for (s in seq_along(nodes)) {
-# 
-#     node <- nodes[s]
-#     fit  <- fits[[node]]
-# 
-#     node_data <- data_up_to_t %>%
-#       dplyr::select(Time, value = all_of(node))
-# 
-#     pred_array[, s, ] <-
-#       brms::posterior_predict(fit, newdata = node_data)[1:n_draws, ]
-# 
-#     phi_array[, s, ] <-
-#       brms::posterior_epred(fit, dpar = "phi", newdata = node_data)[1:n_draws, ]
-# 
-#     zi_array[, s, ] <-
-#       brms::posterior_epred(fit, dpar = "zi", newdata = node_data)[1:n_draws, ]
-#   }
-# 
-#   forecast_results[[i]] <- list(
-#     Time       = t,
-#     post_draws = pred_array,
-#     phi_draws  = phi_array,
-#     zi_draws  = zi_array)
-# }
-# 
-# 
-# 
 
-## ----eval=FALSE---------------------------------------------------------------
-# mean_draws_1 <- apply(forecast_results[[1]]$post_draws, c(2,3), mean)
-# mean_draws_2 <- apply(forecast_results[[2]]$post_draws, c(2,3), mean)
-# 
-# mu_mean_df <- dplyr::as_tibble(rbind(t(mean_draws_1), t(mean_draws_2)[250,])) %>%
-#   dplyr::mutate(Time = 1:250)
-# 
+# Model using gamlss
+for(t in seq_along(n_testyears)) {
+  
+  # Calculate training data
+  train_idx <- which(sim_data$Time < n_testyears[t])
+  training_data <- sim_data[train_idx[-1], , drop = FALSE] # drop NA lag
+  
+  # Fit models
+  zib_AA <- gamlss(AA ~ AA_lag, 
+                   sigma.formula = ~1,
+                   nu.formula = ~AA_lag,
+                   family = BEZI,
+                   data = training_data)
+  zib_AB <- gamlss(AB ~ AB_lag, 
+                   sigma.formula = ~1,
+                   nu.formula = ~AB_lag,
+                   family = BEZI,
+                   data = training_data)
+  zib_A <- gamlss(A ~ A_lag, 
+                  sigma.formula = ~1,
+                  nu.formula = ~A_lag,
+                  family = BEZI,
+                  data = training_data)
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Combined posterior samples
-# mu_post_df <- abind::abind(forecast_results[[1]]$post_draws, forecast_results[[2]]$post_draws[,,250])
-# 
+  if(t==1) {
+    pred_A <- tibble(`Point Forecast` = predict(zib_AA, type = "response")) %>% 
+      mutate(Node = "A", Time = 2:length(train_idx))
+    pred_AA <- tibble(`Point Forecast` =  predict(zib_AA, type = "response")) %>% 
+      mutate(Node = "AA", Time = 2:length(train_idx))
+    pred_AB <- tibble(`Point Forecast` =  predict(zib_AA, type = "response")) %>% 
+      mutate(Node = "AB", Time = 2:length(train_idx))
+    
+    forecasts <- bind_rows(forecasts, pred_A, pred_AA, pred_AB) # training data estimates
+    
+  }
+  
+  # Get one-step ahead predictions
+  mu_pred_A <- predict(zib_A, newdata = sim_data[n_testyears[t], ],
+                       what = "mu", type = "response")
+  mu_pred_AA <- predict(zib_AA, newdata = sim_data[n_testyears[t], ],
+                        what = "mu", type = "response")
+  mu_pred_AB <- predict(zib_AB, newdata = sim_data[n_testyears[t], ],
+                        what = "mu", type = "response")
+  
+  # Get precision of one-step ahead forecast
+  prec_beta_A  <- predict(zib_A, newdata = sim_data[n_testyears[t], ],
+                        what = "sigma", type = "response")
+  prec_beta_AA  <- predict(zib_AA, newdata = sim_data[n_testyears[t], ],
+                        what = "sigma", type = "response")
+  prec_beta_AB  <- predict(zib_AB, newdata = sim_data[n_testyears[t], ],
+                        what = "sigma", type = "response")
+  
+  # Get zero-inflation probability of one-step ahead forecast
+  zi_beta_A  <- predict(zib_A, newdata = sim_data[n_testyears[t], ],
+                        what = "nu", type = "response")
+  zi_beta_AA  <- predict(zib_AA, newdata = sim_data[n_testyears[t], ],
+                        what = "nu", type = "response")
+  zi_beta_AB  <- predict(zib_AB, newdata = sim_data[n_testyears[t], ],
+                        what = "nu", type = "response")
+  
+  # Generate samples of predictions
+  sim_pred_A <- rBEZI(n = 100, mu = mu_pred_A,
+                      sigma = sqrt(prec_beta_A), nu = zi_beta_A)
+  sim_pred_AA <- rBEZI(n = 100, mu = mu_pred_AA,
+                      sigma = sqrt(prec_beta_AA), nu = zi_beta_AA)
+  sim_pred_AB <- rBEZI(n = 100, mu = mu_pred_AB,
+                      sigma = sqrt(prec_beta_AB), nu = zi_beta_AB)
+  
+  # Create results dataframes
+  fc_A <- tibble(Node = "A",
+                 Time = n_testyears[t],
+                 `Forecast precision`= prec_beta_A,
+                 `Forecast zero` = zi_beta_A,
+                 `Point Forecast` = mu_pred_A)
+  fc_AA <- tibble(Node = "AA",
+                 Time = n_testyears[t],
+                 `Forecast precision`= prec_beta_AA,
+                 `Forecast zero` = zi_beta_AA,
+                 `Point Forecast` = mu_pred_AA)
+  fc_AB <- tibble(Node = "AB",
+                 Time = n_testyears[t],
+                 `Forecast precision`= prec_beta_AB,
+                 `Forecast zero` = zi_beta_AB,
+                 `Point Forecast` = mu_pred_AB)
+  
+  forecasts <- bind_rows(forecasts, fc_A, fc_AA, fc_AB)
+ 
+  # Create results dataframes
+  sim_logit_A <- tibble(Node = "A",
+                        Time = n_testyears[t],
+                        sim_pred = sim_pred_A) 
+  sim_logit_AA <- tibble(Node = "AA",
+                        Time = n_testyears[t],
+                        sim_pred = sim_pred_AA) 
+  sim_logit_AB <- tibble(Node = "AB",
+                        Time = n_testyears[t],
+                        sim_pred = sim_pred_AB) 
+  
+  forecasts_sims <- bind_rows(forecasts_sims, sim_logit_A, sim_logit_AA, sim_logit_AB)
+  
+}
 
-## ----eval=FALSE---------------------------------------------------------------
-# phi_post_df <- abind::abind(forecast_results[[1]]$phi_draws, forecast_results[[2]]$phi_draws[,,250])
-# zi_post_df <- abind::abind(forecast_results[[1]]$zi_draws, forecast_results[[2]]$zi_draws[,,250])
-# 
 
-## ----eval=FALSE---------------------------------------------------------------
-# z_values <- seq(0, 1, length.out = 1000) # density grid
-# top_node <- "A"
-# bottom_nodes <- c("AA", "AB")
-# phi_bottom_nodes <- c("phi_AA", "phi_AB")   # bottom-level precision parameters
-# weights_bottom <- c(0.5, 0.5)
-# 
-# p <- ncol(sim_data)-1 # N tilted_nodes in series
-# groups <- list(2, c(2, 2))  # Hierarchical structure
-# 
-# # Create results dataframe to store results in
-# rec_df <- tibble()
-# 
-# # Set up tilting inputs
-# f_tilde_exp <- list()
-# nu_exp <- list()
-# exp_samps <- list()
-# nu_star_mat <- matrix(NA, nrow=2, ncol=3) # n_bottom x n_series
-# 
-# # Define node set for A-group
-# all_nodes <- c("A", "AA", "AB")
-# tilted_nodes <- c("A")
-# 
+## -----------------------------------------------------------------------------
+z_values <- seq(0, 1, length.out = 1000) # density grid
+top_node <- "A"
+bottom_nodes <- c("AA", "AB")
+weights_bottom <- c(0.75, 0.25)
+  
+# Create results df
+n_sims <- 100
+n_draws <- 100
+n_bottom <- 2
 
-## ----eval=FALSE---------------------------------------------------------------
-# 
-# rec_df <- data.frame()
-# 
-# # Loop over prediction time points
-# for (i in seq_along(test_times)) {
-# 
-#   t_i <- test_times[i]
-# 
-#   bottom_data <- sim_data %>% dplyr::filter(Time <= t_i) %>% dplyr::select('AA', 'AB') %>% as.matrix()
-# 
-#   # Sample bottom
-#   weighted_samps <- rZIB_4p(n_mc = 100,
-#                              sub_obs_data = bottom_data,
-#                              phi_array = phi_post_df[,c(2,3),1:t_i],
-#                              zi_array = zi_post_df[,c(2,3),1:t_i],
-#                              weights = weights_bottom)
-# 
-# 
-#   # Build marginal densities for unweighted bottom nodes
-#   bottom_dens <- apply(mu_post_df[,c(2,3),], 2, density)
-# 
-#   for (b in 1:2) {
-#     dens_i <- bottom_dens[[b]]
-# 
-#     tmp <- dplyr::tibble(
-#       Node    = bottom_nodes[b],
-#       Time    = t_i,
-#       Z       = z_values,
-#       Density = stats::approx(dens_i$x, dens_i$y,
-#                        xout = z_values, rule = 2)$y
-#     )
-# 
-#     rec_df <- dplyr::bind_rows(rec_df, tmp) # add density of bottom series to results dataframe
-#   }
-# 
-# 
-#   # Convolution to get A distribution
-#   Density_top <- ZIB_convolution_density(
-#     Y_mc = weighted_samps[,,t_i],
-#     phi_array = phi_post_df[, c(2,3), t_i],
-#     zi_array = zi_post_df[, c(2,3), t_i],
-#     weights = weights_bottom,
-#     z_values = z_values,
-#     n_mc = 100
-#   )
-# 
-#   tmp_top <- dplyr::tibble(
-#     Node    = top_node,
-#     Time    = t_i,
-#     Z       = z_values,
-#     Density = Density_top
-#   )
-# 
-#   rec_df <- dplyr::bind_rows(rec_df, tmp_top) # add density of convoluted top series to results dataframe
-# }
-# 
+rec_list <- lapply(seq_along(n_testyears), function(i) {
 
-## ----eval=FALSE---------------------------------------------------------------
-# for (t in seq_along(test_times)) {
-#   # Extract convolution densities for these nodes
-#   rec_dens_df <- rec_df %>%
-#     dplyr::filter(Time == test_times[t]) %>%
-#     dplyr::pivot_wider(names_from = Node, values_from = Density) %>%
-#     dplyr::select(Z, all_of(tilted_nodes))
-# 
-#   # Predicted means
-#   mu_theory <- as.numeric(mu_mean_df[test_times[t], tilted_nodes])
-# 
-#   # y grid
-#   y_vals <- sort(unique(rec_dens_df$Z))
-# 
-#   # Initialize results
-#   nu_star_vec <- numeric(length(tilted_nodes))
-#   tilted_samps <- matrix(NA, nrow = 5000, ncol = length(tilted_nodes))
-#   f_tilted <- matrix(NA, nrow = length(z_values), ncol = length(tilted_nodes))
-#   colnames(tilted_samps) <- colnames(f_tilted) <- tilted_nodes
-# 
-#   for (i in seq_along(tilted_nodes)) {
-#     name <- tilted_nodes[i]
-# 
-#     # Extract and normalise convolution base density
-#     f_y <- as.numeric(rec_dens_df[[name]])
-#     f_y <- f_y / pracma::trapz(y_vals, f_y)
-# 
-#     # Base mean
-#     mu_base <- pracma::trapz(y_vals, y_vals * f_y)
-# 
-#     cat("Node:", name, "\n")
-#     cat("mu base:", mu_base, "\n")
-#     cat("mu theory:", mu_theory[i], "\n")
-# 
-#     # Root finding bracket search
-#     nu_grid <- seq(-2000, 2000, length.out = 4000)
-#     vals <- sapply(nu_grid, moment_condition_tilting,
-#                    f_y = f_y,
-#                    y_vals = y_vals,
-#                    mu_theory = mu_theory[i])
-# 
-#     idx <- which(diff(sign(vals)) != 0)
-# 
-#     if (length(idx) == 0) {
-#       warning("No sign change for ", name,
-#               " — using no tilting (nu=1).")
-#       nu_star <- 0
-#     } else {
-#       lower <- nu_grid[idx[1]]
-#       upper <- nu_grid[idx[1] + 1]
-#       nu_star <- stats::uniroot(moment_condition_tilting,
-#                          lower = lower,
-#                          upper = upper,
-#                          f_y = f_y,
-#                          y_vals = y_vals,
-#                          mu_theory = mu_theory[i])$root
-#     }
-# 
-#     nu_star_vec[i] <- nu_star
-# 
-#     # Tilted density + samples
-#     f_tilt_i <- tilted_density_cont(nu_star, f_y, y_vals)
-#     f_tilt_i <- f_tilt_i / pracma::trapz(y_vals, f_tilt_i)
-#     f_tilted[, i] <- approx(y_vals, f_tilt_i, xout = z_values, rule = 2)$y
-# 
-#     tilted_samps[, i] <- sample(y_vals, 5000, replace = TRUE, prob = f_tilt_i)
-# 
-#     cat("Tilted mean:", pracma::trapz(y_vals, y_vals * f_tilt_i), "\n")
-#   }
-# 
-#   # Save per-t results
-#   nu_exp[[t]]      <- nu_star_vec
-#   exp_samps[[t]]   <- tilted_samps
-#   f_tilde_exp[[t]] <- f_tilted
-# }
-# 
-# 
+  rec_local <- tibble()   # initialize
 
-## ----echo=FALSE, out.width = "100%",  fig.align = "center"--------------------
-knitr::include_graphics("visualisations/example_ZIB_tilted_density_testset_A_ridges.png")
+  t_i <- n_testyears[i]
+
+  ## Get predictions
+  P_top <- forecasts %>% 
+    filter(Time == t_i, Node == top_node) %>% 
+    pull(`Point Forecast`)
+
+  P_bottom <- forecasts %>% 
+    filter(Time == t_i, Node %in% bottom_nodes) %>% 
+    pull(`Point Forecast`)
+
+  ## Get precision
+  prec_top <- forecasts %>% 
+    filter(Time == t_i, Node == top_node) %>% 
+    pull(`Forecast precision`)
+
+  prec_bottom <- forecasts %>% 
+    filter(Time == t_i, Node %in% bottom_nodes) %>% 
+    pull(`Forecast precision`)
+
+    ## Get precision
+  zoi_top <- forecasts %>% 
+    filter(Time == t_i, Node == top_node) %>% 
+    pull(`Forecast zero`)
+  
+  zoi_bottom <- forecasts %>% 
+    filter(Time == t_i, Node %in% bottom_nodes) %>% 
+    pull(`Forecast zero`)
+  
+  ## Get Beta parameters
+  top_params <- beta_params(P_top, prec_top)
+
+  bottom_params <- list(
+    beta_params(P_bottom[1], prec_bottom[1]),
+    beta_params(P_bottom[2], prec_bottom[2])
+  )
+
+  weighted_samps <- array(NA, dim = c(n_sims, n_draws, n_bottom))
+
+  for (b in 1:n_bottom) {
+
+    weighted_samps[, , b] <- matrix(
+      rZIB_4p(
+        n_mc = n_sims * n_draws,
+        alpha_point = bottom_params[[b]][1],
+        beta_point = bottom_params[[b]][2],
+        zoi_point = zoi_top,
+        0,
+        weights_bottom[b]
+      ),
+      nrow = n_sims,
+      ncol = n_draws
+    )
+
+    dens <- dbeta(
+      z_values,
+      bottom_params[[b]][1],
+      bottom_params[[b]][2]
+    )
+
+    bottom_tmp <- tibble(
+      Node = bottom_nodes[b],
+      Time = t_i,
+      Z = z_values,
+      Density = dens
+    )
+
+    rec_local <- rbind(rec_local, bottom_tmp)
+  }
+
+  ## Convolution
+  Density_top <- ZIB_convolution(
+    z_values = z_values,
+    alpha_input = bottom_params[[n_bottom]][1],
+    beta_input = bottom_params[[n_bottom]][2],
+    zi_input = zoi_bottom[n_bottom],
+    weighted_samps = weighted_samps,
+    weights = weights_bottom[n_bottom],
+    point=TRUE
+  )
+
+  tmp <- tibble(
+    Node = top_node,
+    Time = t_i,
+    Z = z_values,
+    Density = Density_top
+  )
+
+  rec_local <- rbind(rec_local, tmp)
+
+  rec_local  # return
+})
+
+rec_df <- dplyr::bind_rows(rec_list)
+
+
+
+## -----------------------------------------------------------------------------
+# Define node set for A-group
+all_nodes <- c("A", "AA", "AB")
+tilted_nodes <- c("A")
+
+# Storage
+nu_exp <- exp_samps <- f_tilde_exp <- list()
+
+# Loop over time
+for (t in seq_along(n_testyears)) {
+  
+  t_i <- n_testyears[t]
+
+  # Extract convolution densities for these nodes
+  rec_dens_df <- rec_df %>%
+    dplyr::filter(Time == t_i) %>%
+    tidyr::pivot_wider(names_from = Node, values_from = Density) %>%
+    dplyr::select(Z, dplyr::all_of(tilted_nodes))
+
+  # Get predictions
+  mu_theory <- forecasts %>% 
+    filter(Time == t_i, Node %in% c(top_node, bottom_nodes)) %>% 
+    pull(`Point Forecast`)
+
+  # y grid
+  y_vals <- sort(unique(rec_dens_df$Z))
+
+  # Initialize results
+  nu_star_vec <- numeric(length(tilted_nodes))
+  tilted_samps <- matrix(NA, nrow = 5000, ncol = length(tilted_nodes))
+  f_tilted <- matrix(NA, nrow = length(z_values), ncol = length(tilted_nodes))
+  colnames(tilted_samps) <- colnames(f_tilted) <- tilted_nodes
+
+  for (i in seq_along(tilted_nodes)) {
+    name <- tilted_nodes[i]
+
+    # Extract and normalise convolution base density
+    f_y <- as.numeric(rec_dens_df[[name]])
+    f_y <- f_y / pracma::trapz(y_vals, f_y)
+
+    # Tilt density
+    tilted_dens <- tilt_density(mu_theory[i], y_vals, f_y, discrete=FALSE) # tilt density
+  
+    nu_star_vec[i] <- tilted_dens$nu_star
+
+    # Tilted density + samples
+    f_tilted[, i] <- tilted_dens$f_tilted
+
+    tilted_samps[, i] <- tilted_dens$tilted_samps
+    }
+
+  # Save per-t results
+  nu_exp[[t]]      <- nu_star_vec
+  exp_samps[[t]]   <- tilted_samps
+  f_tilde_exp[[t]] <- f_tilted
+}
+
+
+
+## ----echo=FALSE, fig.width=9, fig.height=5, dpi=150---------------------------
+t_point <- 250
+
+forecasts_mean <- forecasts %>% 
+  dplyr::filter(Time == t_point) %>%
+  dplyr::select(Time, Node, `Point Forecast`) %>%
+  tidyr::pivot_wider(names_from = Node, values_from = `Point Forecast`) %>%
+  dplyr::mutate(Method = 'Predicted mean')
+
+conv_dens <- rec_df %>%
+  dplyr::filter(Time == t_point & Node==tilted_nodes) %>%
+  tidyr::pivot_wider(names_from = Node, values_from = Density) %>%
+  dplyr::mutate(Method = 'Convolution')
+
+exp_plot_df <- dplyr::bind_rows(lapply(seq_along(f_tilde_exp), function(t) {
+  tibble::tibble(
+    x = z_values,
+    Density = as.vector(f_tilde_exp[[t]]),
+    Method = "Exp. tilted density",
+    Time = n_testyears[t])})) %>%
+  dplyr::mutate(Density = ifelse(is.na(Density)==TRUE, 0, Density)) %>%
+  dplyr::filter(Time==t_point)
+
+
+ggplot2::ggplot() +
+  ggplot2::geom_line(data = exp_plot_df,
+                ggplot2::aes(x = x, y = Density, colour = Method), linewidth = 1) +
+  ggplot2::geom_line(data = conv_dens,
+                ggplot2::aes(x = Z, y = A, colour = Method), linewidth = 1) +
+  ggplot2::geom_vline(data = forecasts_mean,
+                ggplot2::aes(xintercept = A, colour = Method), linewidth = 1) +
+  ggplot2::scale_colour_manual( values = c(
+    "Exp. tilted density" = "#1b9e77",
+    "Convolution" = "#d95f02",
+    "Predicted mean" = "#7570b3"))+
+  ggplot2::labs(x = "Proportion", y = "Density") +
+  ggplot2::theme_minimal(base_size = 14)
 
 

@@ -1,47 +1,69 @@
-#' Vectorized Zero Inflated 4 parameter Beta density
+#' Monte Carlo Estimate of Aggregated Zero-Inflated Four-Parameter Beta (ZIB) Density
 #'
-#' @param Y_mc Monte Carlo draws of weighted bottom-series samples
-#' @param phi_array Monte Carlo draws of phi
-#' @param zi_array Monte Carlo draws of zero inflation
-#' @param weights node weights (vector of length n_nodes)
-#' @param z_values evaluation points
-#' @param n_mc number of Monte Carlo samples
+#' @param z Numeric evaluation point for the aggregated density.
+#' @param alpha_matrix matrix of shape parameters for each element (b) in the aggregate over each of the N observations (N rows x n_nodes)
+#' @param beta_matrix matrix of shape parameters for each element in the aggregate (N rows x n_nodes)
+#' @param zi_matrix Numeric matrix; Monte Carlo draws of zero-inflation probability (n_draws x n_nodes).
+#' @param weighted_samps matrix of weighted samples for each element in the aggregate (N rows x n_nodes)
+#' @param weights vector of weights that are used to combine to form the aggregated density Z. (length n_nodes)
 #'
+#' @details
+#' For each evaluation point `z`, a Monte Carlo estimate of the aggregated zero-inflated Beta
+#' density is computed by resampling posterior draws from `alpha_matrix`, `beta_matrix,` and `zi_matrix` and
+#' averaging `dZIB_4p` across the selected draws. The resulting density is normalized
+#' using the trapezoidal rule (`pracma::trapz`) to ensure integration to 1.
 #'
+#' @return Numeric vector of the same length as `z_values` representing the normalized
+#'   aggregated zero-inflated Beta density.
+#'
+#' @examples
+#' set.seed(1)
+#'
+#' # Simulation setup
+#' n_sims <- 50
+#' n_draws <- 10
+#' b <- 2
+#'
+#' # Simulated weighted samples
+#' weighted_samps <- array(runif(n_sims * n_draws * b),
+#'                         dim = c(n_sims, n_draws, b))
+#'
+#' alpha_matrix <- matrix(runif(n_draws * b, 2, 5), nrow = n_draws)
+#' beta_matrix  <- matrix(runif(n_draws * b, 2, 5), nrow = n_draws)
+#' zi_matrix  <- matrix(runif(n_draws * b, 0, 0.1), nrow = n_draws)
+#' weights <- c(1, 1)
+#'
+#' density <- ZIB_convolution_density(z = 0.5, alpha_matrix = alpha_matrix,
+#' beta_matrix = beta_matrix, zi_matrix = zi_matrix,
+#' weighted_samps = weighted_samps, weights = weights)
+#'
+#' density
+#'
+#' @export
 
-ZIB_convolution_density <- function(Y_mc,
-                                phi_array,
-                                zi_array,
-                                weights,
-                                z_values,
-                                n_mc) {
+ZIB_convolution_density <- function(z, alpha_matrix, beta_matrix,
+                                    zi_matrix, weighted_samps, weights) {
 
-  n_draws <- dim(Y_mc)[1]
+  n_sims <- dim(weighted_samps)[1]
+  n_draws <- dim(weighted_samps)[2]
+  N <- dim(weighted_samps)[3]
 
-  # Resample posterior draws ONCE
-  draw_id <- sample(seq_len(n_draws), n_mc, replace = TRUE)
+  conv_pdf <- matrix(0, nrow = n_sims, ncol=n_draws)
 
-  phi_mc <- phi_array[draw_id, , drop=FALSE]
-  zi_mc <- zi_array[draw_id, , drop=FALSE]
+  for(s in 1:n_sims) {
+    for(m in 1:n_draws) {
+      conv_pdf[s,m] <- dZIB_4p(x = z - sum(weighted_samps[s,m, 1:(N-1)]),
+                               alpha_point = alpha_matrix[m,N],
+                               beta_point = beta_matrix[m,N],
+                               zi_point = zi_matrix[m,N],
+                               weight = weights[N])
+    }
+  }
+  avg_over_sims <- apply(conv_pdf, 2, mean)
 
-  future::plan(future::sequential)
+  # Compute final result
+  avg_over_draws <- mean(avg_over_sims, na.rm=TRUE)
 
-  Density <- future.apply::future_sapply(
-    z_values,
-    function(z) {
-      library(boundHTS)
-      mean(
-        dZIB_4p(z = z,
-                Y_mc = Y_mc,
-                phi_mc = phi_mc,
-                zi_mc = zi_mc,
-                upper = weights), na.rm = TRUE)
-    },
-    future.seed = TRUE
-  )
-
-  norm_dens <- Density / pracma::trapz(z_values, Density)
-
-  return(norm_dens)
+  return(avg_over_draws)
 
 }

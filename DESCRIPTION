@@ -1,20 +1,20 @@
 Package: boundHTS
 Type: Package
 Title: Building Hierarchical Coherent Densities for Bounded Variables
-Author: Hannah Comiskey [aut, cre], David Fraizer [aut], Ole Maneesoonthorn [aut]
+Author: Hannah Comiskey [aut, cre], David Frazier [aut], Ole Maneesoonthorn [aut]
 Maintainer: Hannah Comiskey <hannahcomiskey68@gmail.com>
 Authors@R: c(person(given = "Hannah",
                       family = "Comiskey",
-                      role = c("aut", "cre"),
+                      role = c("aut", "cre", "cph"),
                       email = "hannahcomiskey68@gmail.com"),
-             person(given = "David",
-                      family = "Fraizer",
+             person(given = "David T.",
+                      family = "Frazier",
                       role = "aut"),
              person(given = "Ole",
                       family = "Maneesoonthorn",
                       role = "aut"))
-Description: Methods for probabilistic and coherent forecasting of hierarchical bounded time series.
-Version: 1.0.1
+Description: Tools for post-hoc reconciliation of hierarchical forecast distributions for discrete or bounded data. The methods construct coherent and distributionally consistent forecasts while preserving the support of the underlying distributions. This enables hierarchical probabilistic forecasting for count and proportion time series where Gaussian assumptions are inappropriate.
+Version: 1.0.2
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -22,9 +22,10 @@ RoxygenNote: 7.3.3
 Depends: R (>= 3.5)
 LazyData: true
 Suggests: knitr, rmarkdown, testthat (>= 3.0.0), tidyr, tidyverse,
-        ggplot2, dplyr, coda, rjags, brms, tibble, MASS
+        ggplot2, dplyr, coda, rjags, brms, tibble, MASS, forecast,
+        gamlss, gamlss.dist
 Config/testthat/edition: 3
-Imports: ExtDist, future, future.apply, stats, pracma
+Imports: ExtDist, future.apply, stats, pracma
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2026-03-03 02:24:00 UTC; hcom0005
+Packaged: 2026-04-08 07:11:47 UTC; hcom0005

@@ -2,23 +2,64 @@
 % Please edit documentation in R/ZIB_convolution_density.R
 \name{ZIB_convolution_density}
 \alias{ZIB_convolution_density}
-\title{Vectorized Zero Inflated 4 parameter Beta density}
+\title{Monte Carlo Estimate of Aggregated Zero-Inflated Four-Parameter Beta (ZIB) Density}
 \usage{
-ZIB_convolution_density(Y_mc, phi_array, zi_array, weights, z_values, n_mc)
+ZIB_convolution_density(
+  z,
+  alpha_matrix,
+  beta_matrix,
+  zi_matrix,
+  weighted_samps,
+  weights
+)
 }
 \arguments{
-\item{Y_mc}{Monte Carlo draws of weighted bottom-series samples}
+\item{z}{Numeric evaluation point for the aggregated density.}
 
-\item{phi_array}{Monte Carlo draws of phi}
+\item{alpha_matrix}{matrix of shape parameters for each element (b) in the aggregate over each of the N observations (N rows x n_nodes)}
 
-\item{zi_array}{Monte Carlo draws of zero inflation}
+\item{beta_matrix}{matrix of shape parameters for each element in the aggregate (N rows x n_nodes)}
 
-\item{weights}{node weights (vector of length n_nodes)}
+\item{zi_matrix}{Numeric matrix; Monte Carlo draws of zero-inflation probability (n_draws x n_nodes).}
 
-\item{z_values}{evaluation points}
+\item{weighted_samps}{matrix of weighted samples for each element in the aggregate (N rows x n_nodes)}
 
-\item{n_mc}{number of Monte Carlo samples}
+\item{weights}{vector of weights that are used to combine to form the aggregated density Z. (length n_nodes)}
+}
+\value{
+Numeric vector of the same length as \code{z_values} representing the normalized
+aggregated zero-inflated Beta density.
 }
 \description{
-Vectorized Zero Inflated 4 parameter Beta density
+Monte Carlo Estimate of Aggregated Zero-Inflated Four-Parameter Beta (ZIB) Density
+}
+\details{
+For each evaluation point \code{z}, a Monte Carlo estimate of the aggregated zero-inflated Beta
+density is computed by resampling posterior draws from \code{alpha_matrix}, \verb{beta_matrix,} and \code{zi_matrix} and
+averaging \code{dZIB_4p} across the selected draws. The resulting density is normalized
+using the trapezoidal rule (\code{pracma::trapz}) to ensure integration to 1.
+}
+\examples{
+set.seed(1)
+
+# Simulation setup
+n_sims <- 50
+n_draws <- 10
+b <- 2
+
+# Simulated weighted samples
+weighted_samps <- array(runif(n_sims * n_draws * b),
+                        dim = c(n_sims, n_draws, b))
+
+alpha_matrix <- matrix(runif(n_draws * b, 2, 5), nrow = n_draws)
+beta_matrix  <- matrix(runif(n_draws * b, 2, 5), nrow = n_draws)
+zi_matrix  <- matrix(runif(n_draws * b, 0, 0.1), nrow = n_draws)
+weights <- c(1, 1)
+
+density <- ZIB_convolution_density(z = 0.5, alpha_matrix = alpha_matrix,
+beta_matrix = beta_matrix, zi_matrix = zi_matrix,
+weighted_samps = weighted_samps, weights = weights)
+
+density
+
 }

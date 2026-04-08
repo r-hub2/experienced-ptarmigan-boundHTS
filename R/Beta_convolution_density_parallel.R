@@ -8,7 +8,7 @@
 #' @details
 #' A wrapper function for calculating Monte Carlo estimates for the aggregate density Z.
 #'
-#' @return The aggregate density Z over a grid of values.
+#' @return The aggregate density Z over a grid of values using a convolution of Beta distributions.
 #' @export
 
 Beta_convolution_density_parallel <- function(z_values, alpha_matrix, beta_matrix, weighted_samps, weights) {
@@ -18,5 +18,11 @@ Beta_convolution_density_parallel <- function(z_values, alpha_matrix, beta_matri
                                          beta_matrix=beta_matrix,
                                          weighted_samps=weighted_samps,
                                          weights=weights)
-  return(Density / pracma::trapz(z_values, Density))
+
+  if(sum(Density)>0) {
+    norm_dens <- Density / pracma::trapz(z_values, Density) # normalise density
+  } else {
+    norm_dens <- Density # leave if Density is 0 everywhere (out of bounds)
+  }
+  return(norm_dens)
 }

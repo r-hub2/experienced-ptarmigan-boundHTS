@@ -2,33 +2,70 @@
 % Please edit documentation in R/ZOIB_convolution_density.R
 \name{ZOIB_convolution_density}
 \alias{ZOIB_convolution_density}
-\title{Vectorized ZOIB density}
+\title{Monte Carlo Convolution Density for Zero-One-Inflated Beta Distributions}
 \usage{
 ZOIB_convolution_density(
-  Y_mc,
-  phi_array,
-  zoi_array,
-  coi_array,
-  weights,
-  z_values,
-  n_mc
+  z,
+  alpha_matrix,
+  beta_matrix,
+  coi_matrix,
+  zoi_matrix,
+  weighted_samps,
+  weights
 )
 }
 \arguments{
-\item{Y_mc}{Monte Carlo draws of weighted bottom-series samples}
+\item{z}{Numeric evaluation point for the aggregated density.}
 
-\item{phi_array}{Monte Carlo draws of phi}
+\item{alpha_matrix}{matrix of shape parameters for each element (b) in the aggregate over each of the N observations (N rows x n_nodes)}
 
-\item{zoi_array}{Monte Carlo draws of zero-one inflation}
+\item{beta_matrix}{matrix of shape parameters for each element in the aggregate (N rows x n_nodes).}
 
-\item{coi_array}{Monte Carlo draws of conditional one inflation}
+\item{coi_matrix}{Numeric matrix; Monte Carlo draws of conditional one-inflation probability (n_draws x n_nodes).}
 
-\item{weights}{node weights (vector of length n_nodes)}
+\item{zoi_matrix}{Numeric matrix; Monte Carlo draws of zero-inflation probability (n_draws x n_nodes).}
 
-\item{z_values}{evaluation points}
+\item{weighted_samps}{matrix of weighted samples for each element in the aggregate (N rows x n_nodes)}
 
-\item{n_mc}{number of Monte Carlo samples}
+\item{weights}{vector of weights that are used to combine to form the aggregated density Z. (length n_nodes)}
+}
+\value{
+A numeric vector containing the estimated aggregate density evaluated at \code{z_values}.
 }
 \description{
-Vectorized ZOIB density
+Monte Carlo Convolution Density for Zero-One-Inflated Beta Distributions
+}
+\details{
+This function computes a Monte Carlo approximation of the density of an
+aggregated Zero-One-Inflated Beta (ZOIB) distribution. Posterior draws are passed to \code{dZOIB_4p()},
+which evaluates the ZOIB density for each Monte Carlo draw.
+The resulting density is normalised using numerical integration.
+}
+\examples{
+set.seed(1)
+
+# Simulation setup
+n_sims <- 10
+n_draws <- 200
+N <- 2
+
+# Simulated posterior draws
+ weighted_samps <- array(runif(n_sims * n_draws * N, min = 0, max = 0.2),
+ dim = c(n_sims, n_draws, N))
+ alpha_matrix <- matrix(runif(n_draws * N, min = 2, max = 10),
+ nrow = n_draws, ncol = N)
+ beta_matrix <- matrix(runif(n_draws * N, min = 2, max = 10),
+ nrow = n_draws, ncol = N)
+ zoi_matrix <- matrix(runif(n_draws * N, 0.1, 0.4), nrow = n_draws, ncol = N)
+ coi_matrix <- matrix(runif(n_draws * N, 0.2, 0.8), nrow = n_draws, ncol = N)
+
+weights <- c(1, 1)
+z_values <- seq(0, 2, length.out = 50)
+
+dens <- ZOIB_convolution_density(z=0.5, alpha_matrix=alpha_matrix,
+beta_matrix = beta_matrix, zoi_matrix = zoi_matrix, coi_matrix = coi_matrix,
+weighted_samps = weighted_samps, weights = weights)
+
+head(dens)
+
 }
